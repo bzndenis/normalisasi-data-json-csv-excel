@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Data Analysis - Data Normalization App{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 2rem; padding-bottom: 3rem;">
+    <div class="card">
+        <div class="card-header">
+            <h1 class="card-title"><i class="bi bi-graph-up"></i> Analisis Data</h1>
+            <p class="card-subtitle">Ringkasan masalah data quality yang terdeteksi</p>
+        </div>
+        
+        <!-- Loading State -->
+        <div id="loadingState" style="text-align: center; padding: 3rem;">
+            <div class="spinner" style="margin: 0 auto 1rem;"></div>
+            <p style="color: var(--text-muted);">Menganalisis data...</p>
+        </div>
+        
+        <!-- Error State -->
+        <div id="errorState" style="display: none;">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle" style="font-size: 1.5rem;"></i>
+                <div>
+                    <strong>Gagal menganalisis data</strong>
+                    <p id="errorMessage" style="margin-top: 0.5rem;"></p>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <a href="/upload" class="btn btn-primary">
+                    <i class="bi bi-arrow-left"></i> Kembali ke Upload
+                </a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div id="mainContent" style="display: none;">
+            <!-- Summary Stats -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 1.5rem; border-radius: var(--radius-lg); color: white;">
+                    <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Baris</div>
+                    <div style="font-size: 2rem; font-weight: 800;" id="totalRows">0</div>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 1.5rem; border-radius: var(--radius-lg); color: white;">
+                    <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Kolom</div>
+                    <div style="font-size: 2rem; font-weight: 800;" id="totalColumns">0</div>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #f59e0b, #d97706); padding: 1.5rem; border-radius: var(--radius-lg); color: white;">
+                    <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">Kolom Bermasalah</div>
+                    <div style="font-size: 2rem; font-weight: 800;" id="problematicColumns">0</div>
+                </div>
+            </div>
+            
+            <!-- Column Issues Table -->
+            <div style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;">
+                    <i class="bi bi-list-check"></i> Ringkasan Masalah Per Kolom
+                </h3>
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nama Kolom</th>
+                                <th>Null Values</th>
+                                <th>Leading/Trailing Spaces</th>
+                                <th>Excessive Whitespace</th>
+                                <th>Inconsistent Case</th>
+                                <th>Special Characters</th>
+                                <th>Invalid Emails</th>
+                                <th>Invalid SK</th>
+                            </tr>
+                        </thead>
+                        <tbody id="issuesTableBody">
+                            <!-- Data will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Data Preview -->
+            <div style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;">
+                    <i class="bi bi-eye"></i> Preview Data (10 baris pertama)
+                </h3>
+                <div class="table-container" style="max-height: 400px; overflow: auto;">
+                    <table class="table">
+                        <thead id="previewTableHead">
+                            <!-- Headers will be inserted here -->
+                        </thead>
+                        <tbody id="previewTableBody">
+                            <!-- Data will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div style="display: flex; gap: 1rem; justify-content: center; padding-top: 1.5rem; border-top: 2px solid var(--gray-200);">
+                <a href="/upload" class="btn btn-outline">
+                    <i class="bi bi-arrow-left"></i> Upload Data Lain
+                </a>
+                <button onclick="proceedToNormalization()" class="btn btn-primary btn-lg">
+                    <i class="bi bi-arrow-right-circle"></i> Lanjut ke Normalisasi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const fileId = "{{ file_id }}";
+let analysisData = null;
+
+// Load analysis data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadAnalysisData();
+});
+
+async function loadAnalysisData() {
+    try {
+        const response = await fetch(`/api/analysis/${fileId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        analysisData = data;
+        
+        // Hide loading, show content
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        
+        // Populate data
+        displaySummaryStats(data);
+        displayColumnIssues(data.column_issues);
+        displayPreviewData(data.preview_data);
+        
+    } catch (error) {
+        console.error('Error loading analysis:', error);
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = 'block';
+        document.getElementById('errorMessage').textContent = error.message;
+    }
+}
+
+function displaySummaryStats(data) {
+    document.getElementById('totalRows').textContent = data.total_rows.toLocaleString();
+    document.getElementById('totalColumns').textContent = data.total_columns;
+    
+    // Count problematic columns (columns with at least one issue)
+    const problematicCount = data.column_issues.filter(issue => 
+        issue.null_count > 0 ||
+        issue.has_leading_trailing_spaces > 0 ||
+        issue.has_excessive_whitespace > 0 ||
+        issue.has_inconsistent_case > 0 ||
+        issue.has_special_characters > 0 ||
+        issue.invalid_emails > 0 ||
+        issue.invalid_sk_numbers > 0
+    ).length;
+    
+    document.getElementById('problematicColumns').textContent = problematicCount;
+}
+
+function displayColumnIssues(columnIssues) {
+    const tbody = document.getElementById('issuesTableBody');
+    tbody.innerHTML = '';
+    
+    columnIssues.forEach(issue => {
+        const row = document.createElement('tr');
+        
+        // Highlight row if has issues
+        const hasIssues = issue.null_count > 0 ||
+            issue.has_leading_trailing_spaces > 0 ||
+            issue.has_excessive_whitespace > 0 ||
+            issue.has_inconsistent_case > 0 ||
+            issue.has_special_characters > 0 ||
+            issue.invalid_emails > 0 ||
+            issue.invalid_sk_numbers > 0;
+        
+        if (hasIssues) {
+            row.style.backgroundColor = 'rgba(245, 158, 11, 0.05)';
+        }
+        
+        row.innerHTML = `
+            <td style="font-weight: 600;">${issue.column_name}</td>
+            <td>${formatIssueCell(issue.null_count, issue.null_percentage)}</td>
+            <td>${formatIssueCell(issue.has_leading_trailing_spaces)}</td>
+            <td>${formatIssueCell(issue.has_excessive_whitespace)}</td>
+            <td>${formatIssueCell(issue.has_inconsistent_case)}</td>
+            <td>${formatIssueCell(issue.has_special_characters)}</td>
+            <td>${formatIssueCell(issue.invalid_emails)}</td>
+            <td>${formatIssueCell(issue.invalid_sk_numbers)}</td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+function formatIssueCell(count, percentage = null) {
+    if (count === 0) {
+        return '<span class="badge badge-success"><i class="bi bi-check"></i> OK</span>';
+    }
+    
+    let badge = `<span class="badge badge-warning">${count}</span>`;
+    
+    if (percentage !== null) {
+        badge += ` <span style="font-size: 0.85rem; color: var(--text-muted);">(${percentage}%)</span>`;
+    }
+    
+    return badge;
+}
+
+function displayPreviewData(previewData) {
+    if (!previewData || previewData.length === 0) {
+        document.getElementById('previewTableBody').innerHTML = '<tr><td colspan="100">No data available</td></tr>';
+        return;
+    }
+    
+    // Get column names from first row
+    const columns = Object.keys(previewData[0]);
+    
+    // Create table header
+    const thead = document.getElementById('previewTableHead');
+    thead.innerHTML = `
+        <tr>
+            ${columns.map(col => `<th>${col}</th>`).join('')}
+        </tr>
+    `;
+    
+    // Create table body
+    const tbody = document.getElementById('previewTableBody');
+    tbody.innerHTML = '';
+    
+    previewData.forEach(row => {
+        const tr = document.createElement('tr');
+        columns.forEach(col => {
+            const td = document.createElement('td');
+            const value = row[col];
+            
+            // Highlight null/empty values
+            if (value === null || value === '') {
+                td.innerHTML = '<span style="color: var(--text-muted); font-style: italic;">NULL</span>';
+            } else {
+                td.textContent = value;
+                
+                // Highlight values with leading/trailing spaces
+                const strValue = String(value);
+                if (strValue !== strValue.trim()) {
+                    td.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+                    td.title = 'Contains leading/trailing spaces';
+                }
+            }
+            
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+}
+
+function proceedToNormalization() {
+    // Navigate to normalization page
+    window.location.href = `/normalize/${fileId}`;
+}
+</script>
+{% endblock %}

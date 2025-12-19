@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Data Normalization App{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 3rem; padding-bottom: 3rem;">
+    <!-- Hero Section -->
+    <div class="text-center" style="margin-bottom: 4rem;">
+        <h1 style="font-size: 3rem; font-weight: 800; color: white; margin-bottom: 1rem;">
+            🚀 Normalisasi Data Made Easy
+        </h1>
+        <p style="font-size: 1.25rem; color: rgba(255,255,255,0.9); max-width: 700px; margin: 0 auto 2rem;">
+            Platform powerful untuk membersihkan dan menormalisasi data dari berbagai sumber.
+            Mendukung JSON, CSV, Excel, MySQL, dan PostgreSQL.
+        </p>
+        <a href="/upload" class="btn btn-primary btn-lg">
+            <i class="bi bi-upload"></i> Mulai Upload Data
+        </a>
+    </div>
+    
+    <!-- Features -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 3rem;">
+        <!-- Feature 1 -->
+        <div class="card">
+            <div style="text-align: center;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 999px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="bi bi-file-earmark-text" style="font-size: 2.5rem; color: white;"></i>
+                </div>
+                <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem;">Multi-Format Support</h3>
+                <p style="color: var(--text-secondary);">
+                    Upload file JSON, CSV, atau Excel. Koneksi langsung ke database MySQL & PostgreSQL.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Feature 2 -->
+        <div class="card">
+            <div style="text-align: center;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 999px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="bi bi-search" style="font-size: 2.5rem; color: white;"></i>
+                </div>
+                <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem;">Smart Analysis</h3>
+                <p style="color: var(--text-secondary);">
+                    Deteksi otomatis masalah data: null values, spasi berlebih, format tidak konsisten, dan lainnya.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Feature 3 -->
+        <div class="card">
+            <div style="text-align: center;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 999px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="bi bi-magic" style="font-size: 2.5rem; color: white;"></i>
+                </div>
+                <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem;">Flexible Normalization</h3>
+                <p style="color: var(--text-secondary);">
+                    Aturan normalisasi yang dapat dikonfigurasi untuk teks, email, dan nomor SK.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Feature 4 -->
+        <div class="card">
+            <div style="text-align: center;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 999px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="bi bi-eye" style="font-size: 2.5rem; color: white;"></i>
+                </div>
+                <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem;">Before & After Preview</h3>
+                <p style="color: var(--text-secondary);">
+                    Lihat perbandingan data sebelum dan sesudah normalisasi dengan statistik lengkap.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Feature 5 -->
+        <div class="card">
+            <div style="text-align: center;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #ec4899, #db2777); border-radius: 999px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="bi bi-download" style="font-size: 2.5rem; color: white;"></i>
+                </div>
+                <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem;">Easy Export</h3>
+                <p style="color: var(--text-secondary);">
+                    Export hasil ke CSV, Excel, JSON, atau simpan langsung ke database.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Feature 6 -->
+        <div class="card">
+            <div style="text-align: center;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border-radius: 999px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="bi bi-shield-check" style="font-size: 2.5rem; color: white;"></i>
+                </div>
+                <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem;">Production Ready</h3>
+                <p style="color: var(--text-secondary);">
+                    Logging lengkap, error handling, dan arsitektur modular siap production.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- How It Works -->
+    <div class="card" style="margin-top: 4rem;">
+        <div class="card-header text-center">
+            <h2 class="card-title" style="font-size: 2rem;">📝 Cara Penggunaan</h2>
+            <p class="card-subtitle">Dalam 5 langkah sederhana</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; margin-top: 2rem;">
+            <div style="text-align: center;">
+                <div style="width: 60px; height: 60px; background: var(--primary-color); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; font-weight: 800;">1</div>
+                <h4 style="font-weight: 700; margin-bottom: 0.5rem;">Upload File</h4>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">Upload file atau koneksi database</p>
+            </div>
+            <div style="text-align: center;">
+                <div style="width: 60px; height: 60px; background: var(--primary-color); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; font-weight: 800;">2</div>
+                <h4 style="font-weight: 700; margin-bottom: 0.5rem;">Analisis Data</h4>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">Review masalah yang terdeteksi</p>
+            </div>
+            <div style="text-align: center;">
+                <div style="width: 60px; height: 60px; background: var(--primary-color); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; font-weight: 800;">3</div>
+                <h4 style="font-weight: 700; margin-bottom: 0.5rem;">Konfigurasi Aturan</h4>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">Pilih aturan normalisasi</p>
+            </div>
+            <div style="text-align: center;">
+                <div style="width: 60px; height: 60px; background: var(--primary-color); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; font-weight: 800;">4</div>
+                <h4 style="font-weight: 700; margin-bottom: 0.5rem;">Preview Hasil</h4>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">Before vs After comparison</p>
+            </div>
+            <div style="text-align: center;">
+                <div style="width: 60px; height: 60px; background: var(--primary-color); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; font-weight: 800;">5</div>
+                <h4 style="font-weight: 700; margin-bottom: 0.5rem;">Export / Save</h4>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">Download atau simpan ke DB</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

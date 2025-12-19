@@ -1,0 +1,42 @@
+[
+    {
+        "id": 1,
+        "nama": "  BUDI SANTOSO  ",
+        "email": "BUDI.SANTOSO@GMAIL.COM  ",
+        "nomor_sk": "123 / ABC / 2024",
+        "jabatan": "kepala DIVISI",
+        "status": "aktif "
+    },
+    {
+        "id": 2,
+        "nama": "ani   wijaya",
+        "email": "  ani wijaya@yahoo.com",
+        "nomor_sk": "124-XYZ-2024",
+        "jabatan": " STAFF ADMINISTRASI",
+        "status": "AKTIF"
+    },
+    {
+        "id": 3,
+        "nama": "AHMAD@#$ RAHMAN",
+        "email": "AHMAD.RAHMAN@HOTMAIL.COM",
+        "nomor_sk": "125/DEF/2024",
+        "jabatan": "Manager   Operasional",
+        "status": "aktif"
+    },
+    {
+        "id": 4,
+        "nama": "siti    NURHALIZA",
+        "email": "siti@EXAMPLE.COM ",
+        "nomor_sk": "126_GHI_2024",
+        "jabatan": "  supervisor produksi  ",
+        "status": "Non Aktif"
+    },
+    {
+        "id": 5,
+        "nama": "  Joko   SUSILO  ",
+        "email": "joko.susilo@mail.co.id",
+        "nomor_sk": "127/JKL/2024",
+        "jabatan": "KOORDINATOR logistics",
+        "status": " aktif "
+    }
+]

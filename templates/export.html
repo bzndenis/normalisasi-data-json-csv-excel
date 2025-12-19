@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+
+{% block title %}Export Data - Data Normalization App{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 2rem; padding-bottom: 3rem;">
+    <div class="card">
+        <div class="card-header text-center">
+            <h1 class="card-title"><i class="bi bi-download"></i> Export Hasil Normalisasi</h1>
+            <p class="card-subtitle">Pilih format atau simpan langsung ke database</p>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid var(--gray-200);">
+            <button class="tab-btn active" onclick="switchTab('file')" id="tab-file">
+                <i class="bi bi-file-earmark-arrow-down"></i> Export ke File
+            </button>
+            <button class="tab-btn" onclick="switchTab('database')" id="tab-database">
+                <i class="bi bi-database-down"></i> Simpan ke Database
+            </button>
+        </div>
+        
+        <!-- Export to File Tab -->
+        <div id="content-file" class="tab-content active">
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem;">
+                Pilih Format Export:
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                <!-- CSV Option -->
+                <div class="export-option" onclick="exportToFormat('csv')">
+                    <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                        <i class="bi bi-filetype-csv" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h4 style="font-weight: 700; margin-bottom: 0.5rem;">CSV</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">
+                        Format tabel sederhana, cocok untuk Excel & spreadsheet
+                    </p>
+                    <button class="btn btn-secondary" style="margin-top: 1rem;">
+                        <i class="bi bi-download"></i> Export CSV
+                    </button>
+                </div>
+                
+                <!-- Excel Option -->
+                <div class="export-option" onclick="exportToFormat('excel')">
+                    <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                        <i class="bi bi-file-earmark-excel" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h4 style="font-weight: 700; margin-bottom: 0.5rem;">Excel</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">
+                        Format Microsoft Excel (.xlsx) dengan formatting
+                    </p>
+                    <button class="btn btn-secondary" style="margin-top: 1rem;">
+                        <i class="bi bi-download"></i> Export Excel
+                    </button>
+                </div>
+                
+                <!-- JSON Option -->
+                <div class="export-option" onclick="exportToFormat('json')">
+                    <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                        <i class="bi bi-filetype-json" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h4 style="font-weight: 700; margin-bottom: 0.5rem;">JSON</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">
+                        Format JSON untuk integrasi dengan aplikasi lain
+                    </p>
+                    <button class="btn btn-secondary" style="margin-top: 1rem;">
+                        <i class="bi bi-download"></i> Export JSON
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Custom filename -->
+            <div class="form-group">
+                <label class="form-label">Custom Filename (opsional):</label>
+                <input type="text" class="form-control" id="customFilename" placeholder="Kosongkan untuk nama otomatis">
+                <small style="color: var(--text-muted);">Ekstensi file akan ditambahkan otomatis</small>
+            </div>
+        </div>
+        
+        <!-- Export to Database Tab -->
+        <div id="content-database" class="tab-content">
+            <form id="databaseExportForm">
+                <div class="form-group">
+                    <label class="form-label">Database Type</label>
+                    <select class="form-control form-select" id="dbType" required>
+                        <option value="mysql">MySQL</option>
+                        <option value="postgresql">PostgreSQL</option>
+                    </select>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Host</label>
+                        <input type="text" class="form-control" id="dbHost" value="localhost" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Port</label>
+                        <input type="number" class="form-control" id="dbPort" value="3306" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Database Name</label>
+                    <input type="text" class="form-control" id="dbName" required>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" id="dbUsername" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="dbPassword">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Table Name</label>
+                    <input type="text" class="form-control" id="dbTableName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Jika table sudah ada:</label>
+                    <select class="form-control form-select" id="ifExists">
+                        <option value="replace">Replace (hapus & buat baru)</option>
+                        <option value="append">Append (tambahkan data)</option>
+                        <option value="fail">Fail (error jika ada)</option>
+                    </select>
+                </div>
+                
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-database-check"></i> Simpan ke Database
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Status Messages -->
+        <div id="statusMsg" style="margin-top: 2rem; display: none;"></div>
+        
+        <!-- Back Button -->
+        <div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--gray-200);">
+            <a href="/" class="btn btn-outline">
+                <i class="bi bi-house"></i> Kembali ke Home
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.export-option {
+    background: var(--bg-primary);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.export-option:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 1rem 2rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    position: relative;
+    transition: all var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.tab-btn:hover {
+    color: var(--primary-color);
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--primary-color);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const fileId = "{{ file_id }}";
+
+// Tab switching
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.getElementById('content-' + tab).classList.add('active');
+    
+    // Update port based on database type
+    if (tab === 'database') {
+        document.getElementById('dbType').addEventListener('change', function() {
+            document.getElementById('dbPort').value = this.value === 'mysql' ? '3306' : '5432';
+        });
+    }
+}
+
+// Export to file
+async function exportToFormat(format) {
+    const filename = document.getElementById('customFilename').value || null;
+    
+    showStatus('info', `Mengexport ke ${format.toUpperCase()}...`);
+    
+    try {
+        const response = await fetch('/api/export/file', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                file_id: fileId,
+                format: format,
+                filename: filename
+            })
+        });
+        
+        // Check content type before parsing
+        const contentType = response.headers.get('content-type');
+        
+        if (!response.ok) {
+            let errorMessage = 'Export failed';
+            
+            // Try to parse JSON error if content-type is JSON
+            if (contentType && contentType.includes('application/json')) {
+                try {
+                    const error = await response.json();
+                    errorMessage = error.detail || error.message || errorMessage;
+                } catch (e) {
+                    // Failed to parse JSON
+                    errorMessage = `Server error (${response.status})`;
+                }
+            } else {
+                // Non-JSON response (likely HTML error page)
+                const text = await response.text();
+                if (response.status === 404) {
+                    errorMessage = 'File ID tidak ditemukan. Data mungkin sudah expired. Silakan upload file lagi.';
+                } else {
+                    errorMessage = `Server error (${response.status}). Cek console untuk detail.`;
+                    console.error('Server response:', text.substring(0, 500));
+                }
+            }
+            
+            throw new Error(errorMessage);
+        }
+        
+        const result = await response.json();
+        
+        showStatus('success', `✓ Export berhasil! File siap didownload.`);
+        
+        // Trigger download
+        window.location.href = result.download_url;
+        
+    } catch (error) {
+        console.error('Export error:', error);
+        showStatus('error', `✗ Export gagal: ${error.message}`);
+    }
+}
+
+// Export to database
+document.getElementById('databaseExportForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const config = {
+        db_type: document.getElementById('dbType').value,
+        host: document.getElementById('dbHost').value,
+        port: parseInt(document.getElementById('dbPort').value),
+        username: document.getElementById('dbUsername').value,
+        password: document.getElementById('dbPassword').value,
+        database: document.getElementById('dbName').value,
+        table: document.getElementById('dbTableName').value
+    };
+    
+    const tableName = document.getElementById('dbTableName').value;
+    const ifExists = document.getElementById('ifExists').value;
+    
+    showStatus('info', 'Menyimpan ke database...');
+    
+    try {
+        const response = await fetch('/api/export/database', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                file_id: fileId,
+                connection: config,
+                table_name: tableName,
+                if_exists: ifExists
+            })
+        });
+        
+        // Check content type before parsing
+        const contentType = response.headers.get('content-type');
+        
+        if (!response.ok) {
+            let errorMessage = 'Database export failed';
+            
+            if (contentType && contentType.includes('application/json')) {
+                try {
+                    const error = await response.json();
+                    errorMessage = error.detail || error.message || errorMessage;
+                } catch (e) {
+                    errorMessage = `Server error (${response.status})`;
+                }
+            } else {
+                const text = await response.text();
+                if (response.status === 404) {
+                    errorMessage = 'File ID tidak ditemukan. Data mungkin sudah expired. Silakan upload file lagi.';
+                } else {
+                    errorMessage = `Server error (${response.status}). Cek console untuk detail.`;
+                    console.error('Server response:', text.substring(0, 500));
+                }
+            }
+            
+            throw new Error(errorMessage);
+        }
+        
+        const result = await response.json();
+        
+        showStatus('success', `✓ ${result.message}`);
+        
+    } catch (error) {
+        console.error('Database export error:', error);
+        showStatus('error', `✗ Export gagal: ${error.message}`);
+    }
+});
+
+function showStatus(type, message) {
+    const statusDiv = document.getElementById('statusMsg');
+    const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
+    const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle';
+    
+    statusDiv.innerHTML = `
+        <div class="alert ${alertClass}">
+            <i class="bi bi-${icon}" style="font-size: 1.5rem;"></i>
+            <div>${message}</div>
+        </div>
+    `;
+    statusDiv.style.display = 'block';
+    
+    // Auto hide success messages after 5 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 5000);
+    }
+}
+</script>
+{% endblock %}

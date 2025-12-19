@@ -1,0 +1,516 @@
+{% extends "base.html" %}
+
+{% block title %}Normalization Configuration - Data Normalization App{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 2rem; padding-bottom: 3rem;">
+    <div class="card">
+        <div class="card-header">
+            <h1 class="card-title"><i class="bi bi-sliders"></i> Konfigurasi Normalisasi</h1>
+            <p class="card-subtitle">Pilih kolom dan aturan normalisasi yang akan diterapkan</p>
+        </div>
+        
+        <!-- Loading State -->
+        <div id="loadingState" style="text-align: center; padding: 3rem;">
+            <div class="spinner" style="margin: 0 auto 1rem;"></div>
+            <p style="color: var(--text-muted);">Memuat konfigurasi...</p>
+        </div>
+        
+        <!-- Error State -->
+        <div id="errorState" style="display: none;">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle" style="font-size: 1.5rem;"></i>
+                <div>
+                    <strong>Gagal memuat data</strong>
+                    <p id="errorMessage" style="margin-top: 0.5rem;"></p>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <a href="/upload" class="btn btn-primary">
+                    <i class="bi bi-arrow-left"></i> Kembali ke Upload
+                </a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div id="mainContent" style="display: none;">
+            <!-- Quick Actions -->
+            <div style="background: var(--gray-50); padding: 1.5rem; border-radius: var(--radius-lg); margin-bottom: 2rem;">
+                <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem;">Quick Actions:</h3>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button onclick="selectAllColumns()" class="btn btn-outline" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+                        <i class="bi bi-check-all"></i> Pilih Semua Kolom
+                    </button>
+                    <button onclick="deselectAllColumns()" class="btn btn-outline" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+                        <i class="bi bi-x-circle"></i> Hapus Semua Pilihan
+                    </button>
+                    <button onclick="applyDefaultRules()" class="btn btn-outline" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+                        <i class="bi bi-magic"></i> Terapkan Aturan Default
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Column Configuration -->
+            <div id="columnConfigs">
+                <!-- Column cards will be inserted here -->
+            </div>
+            
+            <!-- Actions -->
+            <div style="display: flex; gap: 1rem; justify-content: center; padding-top: 2rem; margin-top: 2rem; border-top: 2px solid var(--gray-200);">
+                <a href="/analysis/{{ file_id }}" class="btn btn-outline">
+                    <i class="bi bi-arrow-left"></i> Kembali ke Analisis
+                </a>
+                <button onclick="executeNormalization()" class="btn btn-primary btn-lg" id="normalizeBtn">
+                    <i class="bi bi-play-circle"></i> Jalankan Normalisasi
+                </button>
+            </div>
+        </div>
+        
+        <!-- Processing State -->
+        <div id="processingState" style="display: none; text-align: center; padding: 3rem;">
+            <div class="spinner" style="margin: 0 auto 1rem;"></div>
+            <h3 style="font-weight: 700; margin-bottom: 0.5rem;">Memproses Normalisasi...</h3>
+            <p style="color: var(--text-muted);">Mohon tunggu, data sedang diproses</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.column-card {
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: all var(--transition-base);
+}
+
+.column-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md);
+}
+
+.column-card.disabled {
+    opacity: 0.6;
+    background: var(--gray-50);
+}
+
+.rule-group {
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+}
+
+.checkbox-wrapper label {
+    cursor: pointer;
+    margin: 0;
+    font-weight: 500;
+}
+
+.type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+.type-text {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.type-email {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.type-sk {
+    background: #fef3c7;
+    color: #92400e;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const fileId = "{{ file_id }}";
+let analysisData = null;
+let columnConfigs = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadAnalysisData();
+});
+
+async function loadAnalysisData() {
+    try {
+        const response = await fetch(`/api/analysis/${fileId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        analysisData = data;
+        
+        // Hide loading, show content
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        
+        // Initialize column configs
+        initializeColumnConfigs(data.column_issues);
+        renderColumnConfigs();
+        
+    } catch (error) {
+        console.error('Error loading analysis:', error);
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = 'block';
+        document.getElementById('errorMessage').textContent = error.message;
+    }
+}
+
+function initializeColumnConfigs(columnIssues) {
+    columnConfigs = columnIssues.map(issue => {
+        // Auto-detect column type
+        let columnType = 'text';
+        if (issue.column_name.toLowerCase().includes('email') || issue.column_name.toLowerCase().includes('mail')) {
+            columnType = 'email';
+        } else if (issue.column_name.toLowerCase().includes('sk') || issue.column_name.toLowerCase().includes('nomor')) {
+            columnType = 'sk';
+        }
+        
+        return {
+            column_name: issue.column_name,
+            enabled: true,
+            column_type: columnType,
+            text_rules: {
+                trim_spaces: true,
+                remove_excessive_whitespace: true,
+                case_conversion: 'title',
+                remove_special_chars: false,
+                allowed_special_chars: ''
+            },
+            email_rules: {
+                to_lowercase: true,
+                trim_spaces: true,
+                validate_format: true,
+                validate_domain: false
+            },
+            sk_rules: {
+                remove_special_chars: true,
+                standardize_format: true,
+                delimiter: 'slash',
+                validate_pattern: true,
+                pattern: null
+            }
+        };
+    });
+}
+
+function renderColumnConfigs() {
+    const container = document.getElementById('columnConfigs');
+    container.innerHTML = '';
+    
+    columnConfigs.forEach((config, index) => {
+        const card = createColumnCard(config, index);
+        container.appendChild(card);
+    });
+}
+
+function createColumnCard(config, index) {
+    const card = document.createElement('div');
+    card.className = 'column-card';
+    card.id = `column-card-${index}`;
+    if (!config.enabled) {
+        card.classList.add('disabled');
+    }
+    
+    const typeBadgeClass = `type-${config.column_type}`;
+    
+    card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+            <div>
+                <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem;">
+                    ${config.column_name}
+                    <span class="type-badge ${typeBadgeClass}">${config.column_type.toUpperCase()}</span>
+                </h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">
+                    Klik untuk mengubah jenis: 
+                    <select onchange="changeColumnType(${index}, this.value)" style="margin-left: 0.5rem; padding: 0.25rem 0.5rem; border-radius: var(--radius-sm);">
+                        <option value="text" ${config.column_type === 'text' ? 'selected' : ''}>Text</option>
+                        <option value="email" ${config.column_type === 'email' ? 'selected' : ''}>Email</option>
+                        <option value="sk" ${config.column_type === 'sk' ? 'selected' : ''}>SK Number</option>
+                    </select>
+                </p>
+            </div>
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="enable-${index}" ${config.enabled ? 'checked' : ''} 
+                       onchange="toggleColumn(${index}, this.checked)">
+                <label for="enable-${index}">Aktifkan Normalisasi</label>
+            </div>
+        </div>
+        
+        <div id="rules-${index}">
+            ${renderRules(config, index)}
+        </div>
+    `;
+    
+    return card;
+}
+
+function renderRules(config, index) {
+    if (!config.enabled) {
+        return '<p style="color: var(--text-muted); font-style: italic;">Normalisasi tidak aktif untuk kolom ini</p>';
+    }
+    
+    if (config.column_type === 'text') {
+        return renderTextRules(config.text_rules, index);
+    } else if (config.column_type === 'email') {
+        return renderEmailRules(config.email_rules, index);
+    } else if (config.column_type === 'sk') {
+        return renderSKRules(config.sk_rules, index);
+    }
+    
+    return '';
+}
+
+function renderTextRules(rules, index) {
+    return `
+        <div class="rule-group">
+            <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem;">Aturan Text Normalization:</h4>
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="text-trim-${index}" ${rules.trim_spaces ? 'checked' : ''}
+                       onchange="updateTextRule(${index}, 'trim_spaces', this.checked)">
+                <label for="text-trim-${index}">Hapus spasi di awal dan akhir (trim)</label>
+            </div>
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="text-whitespace-${index}" ${rules.remove_excessive_whitespace ? 'checked' : ''}
+                       onchange="updateTextRule(${index}, 'remove_excessive_whitespace', this.checked)">
+                <label for="text-whitespace-${index}">Hapus spasi berlebih (multiple spaces)</label>
+            </div>
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="text-special-${index}" ${rules.remove_special_chars ? 'checked' : ''}
+                       onchange="updateTextRule(${index}, 'remove_special_chars', this.checked)">
+                <label for="text-special-${index}">Hapus karakter spesial</label>
+            </div>
+            
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Konversi Kapitalisasi:</label>
+                <select class="form-control form-select" onchange="updateTextRule(${index}, 'case_conversion', this.value)">
+                    <option value="null" ${!rules.case_conversion ? 'selected' : ''}>Tidak diubah</option>
+                    <option value="upper" ${rules.case_conversion === 'upper' ? 'selected' : ''}>UPPERCASE</option>
+                    <option value="lower" ${rules.case_conversion === 'lower' ? 'selected' : ''}>lowercase</option>
+                    <option value="title" ${rules.case_conversion === 'title' ? 'selected' : ''}>Title Case</option>
+                </select>
+            </div>
+        </div>
+    `;
+}
+
+function renderEmailRules(rules, index) {
+    return `
+        <div class="rule-group">
+            <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem;">Aturan Email Normalization:</h4>
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="email-lowercase-${index}" ${rules.to_lowercase ? 'checked' : ''}
+                       onchange="updateEmailRule(${index}, 'to_lowercase', this.checked)">
+                <label for="email-lowercase-${index}">Konversi ke lowercase</label>
+            </div>
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="email-trim-${index}" ${rules.trim_spaces ? 'checked' : ''}
+                       onchange="updateEmailRule(${index}, 'trim_spaces', this.checked)">
+                <label for="email-trim-${index}">Hapus spasi</label>
+            </div>
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="email-validate-${index}" ${rules.validate_format ? 'checked' : ''}
+                       onchange="updateEmailRule(${index}, 'validate_format', this.checked)">
+                <label for="email-validate-${index}">Validasi format email</label>
+            </div>
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="email-domain-${index}" ${rules.validate_domain ? 'checked' : ''}
+                       onchange="updateEmailRule(${index}, 'validate_domain', this.checked)">
+                <label for="email-domain-${index}">Validasi domain email (strict)</label>
+            </div>
+        </div>
+    `;
+}
+
+function renderSKRules(rules, index) {
+    return `
+        <div class="rule-group">
+            <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem;">Aturan SK Number Normalization:</h4>
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="sk-special-${index}" ${rules.remove_special_chars ? 'checked' : ''}
+                       onchange="updateSKRule(${index}, 'remove_special_chars', this.checked)">
+                <label for="sk-special-${index}">Hapus karakter spesial</label>
+            </div>
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="sk-standardize-${index}" ${rules.standardize_format ? 'checked' : ''}
+                       onchange="updateSKRule(${index}, 'standardize_format', this.checked)">
+                <label for="sk-standardize-${index}">Standarisasi format</label>
+            </div>
+            
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="sk-validate-${index}" ${rules.validate_pattern ? 'checked' : ''}
+                       onchange="updateSKRule(${index}, 'validate_pattern', this.checked)">
+                <label for="sk-validate-${index}">Validasi pola SK</label>
+            </div>
+            
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Delimiter:</label>
+                <select class="form-control form-select" onchange="updateSKRule(${index}, 'delimiter', this.value)">
+                    <option value="slash" ${rules.delimiter === 'slash' ? 'selected' : ''}>/  (slash)</option>
+                    <option value="dash" ${rules.delimiter === 'dash' ? 'selected' : ''}>-  (dash)</option>
+                    <option value="underscore" ${rules.delimiter === 'underscore' ? 'selected' : ''}>_  (underscore)</option>
+                </select>
+            </div>
+        </div>
+    `;
+}
+
+function toggleColumn(index, enabled) {
+    columnConfigs[index].enabled = enabled;
+    renderColumnConfigs();
+}
+
+function changeColumnType(index, newType) {
+    columnConfigs[index].column_type = newType;
+    renderColumnConfigs();
+}
+
+function updateTextRule(index, rule, value) {
+    if (value === 'null') value = null;
+    columnConfigs[index].text_rules[rule] = value;
+}
+
+function updateEmailRule(index, rule, value) {
+    columnConfigs[index].email_rules[rule] = value;
+}
+
+function updateSKRule(index, rule, value) {
+    columnConfigs[index].sk_rules[rule] = value;
+}
+
+function selectAllColumns() {
+    columnConfigs.forEach(config => config.enabled = true);
+    renderColumnConfigs();
+}
+
+function deselectAllColumns() {
+    columnConfigs.forEach(config => config.enabled = false);
+    renderColumnConfigs();
+}
+
+function applyDefaultRules() {
+    initializeColumnConfigs(analysisData.column_issues);
+    renderColumnConfigs();
+    showToast('Aturan default berhasil diterapkan');
+}
+
+async function executeNormalization() {
+    // Validate at least one column is enabled
+    const enabledColumns = columnConfigs.filter(c => c.enabled);
+    if (enabledColumns.length === 0) {
+        alert('Pilih minimal satu kolom untuk dinormalisasi');
+        return;
+    }
+    
+    // Show processing state
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('processingState').style.display = 'block';
+    
+    try {
+        const response = await fetch('/api/normalize/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                file_id: fileId,
+                columns_config: columnConfigs
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Normalization failed');
+        }
+        
+        const result = await response.json();
+        
+        // Redirect to preview page
+        window.location.href = `/preview/${fileId}/${result.normalized_file_id}`;
+        
+    } catch (error) {
+        console.error('Error executing normalization:', error);
+        alert('Error: ' + error.message);
+        
+        // Show main content again
+        document.getElementById('processingState').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+    }
+}
+
+function showToast(message) {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: var(--secondary-color);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xl);
+        z-index: 9999;
+        animation: slideIn 0.3s ease-out;
+    `;
+    toast.innerHTML = `<i class="bi bi-check-circle"></i> ${message}`;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+</script>
+
+<style>
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+</style>
+{% endblock %}

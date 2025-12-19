@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Data - Data Normalization App{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 2rem; padding-bottom: 3rem;">
+    <div class="card">
+        <div class="card-header text-center">
+            <h1 class="card-title"><i class="bi bi-upload"></i> Upload Data</h1>
+            <p class="card-subtitle">Pilih sumber data: Upload file atau koneksi database</p>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid var(--gray-200);">
+            <button class="tab-btn active" onclick="switchTab('file')" id="tab-file">
+                <i class="bi bi-file-earmark-arrow-up"></i> Upload File
+            </button>
+            <button class="tab-btn" onclick="switchTab('database')" id="tab-database">
+                <i class="bi bi-database"></i> Database Connection
+            </button>
+        </div>
+        
+        <!-- File Upload Tab -->
+        <div id="content-file" class="tab-content active">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="file-upload" id="fileDropZone">
+                    <i class="bi bi-cloud-upload" style="font-size: 4rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                    <h3 style="font-weight: 700; margin-bottom: 0.5rem;">Drop file di sini atau klik untuk upload</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                        Mendukung: JSON, CSV, Excel (XLS/XLSX) - Max 10MB
+                    </p>
+                    <input type="file" id="fileInput" accept=".json,.csv,.xls,.xlsx" style="display: none;">
+                    <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                        <i class="bi bi-folder2-open"></i> Browse File
+                    </button>
+                </div>
+                
+                <div id="fileInfo" style="margin-top: 1.5rem; display: none;">
+                    <div class="alert alert-info">
+                        <i class="bi bi-file-earmark-check" style="font-size: 1.5rem;"></i>
+                        <div>
+                            <strong id="fileName"></strong>
+                            <div id="fileSize" style="font-size: 0.9rem; opacity: 0.8;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="uploadProgress" style="margin-top: 1.5rem; display: none;">
+                    <div class="progress">
+                        <div class="progress-bar" id="progressBar" style="width: 0%">0%</div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn" disabled>
+                        <i class="bi bi-arrow-right-circle"></i> Upload & Analisis
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Database Connection Tab -->
+        <div id="content-database" class="tab-content">
+            <form id="databaseForm">
+                <div class="form-group">
+                    <label class="form-label">Database Type</label>
+                    <select class="form-control form-select" id="dbType" required>
+                        <option value="mysql">MySQL</option>
+                        <option value="postgresql">PostgreSQL</option>
+                    </select>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Host</label>
+                        <input type="text" class="form-control" id="dbHost" value="localhost" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Port</label>
+                        <input type="number" class="form-control" id="dbPort" value="3306" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Database Name</label>
+                    <input type="text" class="form-control" id="dbName" required>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" id="dbUsername" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="dbPassword">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Table Name</label>
+                    <input type="text" class="form-control" id="dbTable" required>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                    <button type="button" class="btn btn-outline" id="testConnectionBtn">
+                        <i class="bi bi-plug"></i> Test Connection
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-lg" id="connectBtn">
+                        <i class="bi bi-arrow-right-circle"></i> Connect & Analisis
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Error/Success Messages -->
+        <div id="errorMsg" style="margin-top: 1.5rem; display: none;"></div>
+        <div id="successMsg" style="margin-top: 1.5rem; display: none;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.tab-btn {
+    flex: 1;
+    padding: 1rem 2rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    position: relative;
+    transition: all var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.tab-btn:hover {
+    color: var(--primary-color);
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--primary-color);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tab Switching
+function switchTab(tab) {
+    // Update buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    
+    // Update content
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.getElementById('content-' + tab).classList.add('active');
+    
+    // Update port based on database type
+    if (tab === 'database') {
+        document.getElementById('dbType').addEventListener('change', function() {
+            document.getElementById('dbPort').value = this.value === 'mysql' ? '3306' : '5432';
+        });
+    }
+}
+
+// File Upload
+const fileInput = document.getElementById('fileInput');
+const fileDropZone = document.getElementById('fileDropZone');
+const uploadForm = document.getElementById('uploadForm');
+const uploadBtn = document.getElementById('uploadBtn');
+
+// File input change
+fileInput.addEventListener('change', function(e) {
+    handleFileSelect(e.target.files[0]);
+});
+
+// Drag and drop
+fileDropZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.add('dragover');
+});
+
+fileDropZone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.remove('dragover');
+});
+
+fileDropZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.remove('dragover');
+    
+    const file = e.dataTransfer.files[0];
+    handleFileSelect(file);
+});
+
+function handleFileSelect(file) {
+    if (!file) return;
+    
+    // Show file info
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = formatFileSize(file.size);
+    document.getElementById('fileInfo').style.display = 'block';
+    uploadBtn.disabled = false;
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+// Upload form submit
+uploadForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const file = fileInput.files[0];
+    if (!file) {
+        showError('Silakan pilih file terlebih dahulu');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Show progress
+    document.getElementById('uploadProgress').style.display = 'block';
+    uploadBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/api/upload/file', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showSuccess('File uploaded successfully! Redirecting to analysis...');
+            setTimeout(() => {
+                window.location.href = `/analysis/${data.file_id}`;
+            }, 1500);
+        } else {
+            showError(data.message || 'Upload failed');
+            uploadBtn.disabled = false;
+        }
+    } catch (error) {
+        showError('Error: ' + error.message);
+        uploadBtn.disabled = false;
+    }
+});
+
+// Database form
+const databaseForm = document.getElementById('databaseForm');
+const testConnectionBtn = document.getElementById('testConnectionBtn');
+
+testConnectionBtn.addEventListener('click', async function() {
+    const config = getDatabaseConfig();
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner"></span> Testing...';
+    
+    try {
+        const response = await fetch('/api/database/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showSuccess('✓ Database connection successful!');
+        } else {
+            showError(data.detail || 'Connection failed');
+        }
+    } catch (error) {
+        showError('Error: ' + error.message);
+    } finally {
+        this.disabled = false;
+        this.innerHTML = '<i class="bi bi-plug"></i> Test Connection';
+    }
+});
+
+databaseForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const config = getDatabaseConfig();
+    const connectBtn = document.getElementById('connectBtn');
+    connectBtn.disabled = true;
+    connectBtn.innerHTML = '<span class="spinner"></span> Connecting...';
+    
+    try {
+        const response = await fetch('/api/database/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showSuccess('Connected successfully! Redirecting to analysis...');
+            setTimeout(() => {
+                window.location.href = `/analysis/${data.file_id}`;
+            }, 1500);
+        } else {
+            showError(data.detail || 'Connection failed');
+            connectBtn.disabled = false;
+            connectBtn.innerHTML = '<i class="bi bi-arrow-right-circle"></i> Connect & Analisis';
+        }
+    } catch (error) {
+        showError('Error: ' + error.message);
+        connectBtn.disabled = false;
+        connectBtn.innerHTML = '<i class="bi bi-arrow-right-circle"></i> Connect & Analisis';
+    }
+});
+
+function getDatabaseConfig() {
+    return {
+        db_type: document.getElementById('dbType').value,
+        host: document.getElementById('dbHost').value,
+        port: parseInt(document.getElementById('dbPort').value),
+        username: document.getElementById('dbUsername').value,
+        password: document.getElementById('dbPassword').value,
+        database: document.getElementById('dbName').value,
+        table: document.getElementById('dbTable').value
+    };
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('errorMsg');
+    errorDiv.innerHTML = `
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle" style="font-size: 1.5rem;"></i>
+            <div>${message}</div>
+        </div>
+    `;
+    errorDiv.style.display = 'block';
+    document.getElementById('successMsg').style.display = 'none';
+}
+
+function showSuccess(message) {
+    const successDiv = document.getElementById('successMsg');
+    successDiv.innerHTML = `
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle" style="font-size: 1.5rem;"></i>
+            <div>${message}</div>
+        </div>
+    `;
+    successDiv.style.display = 'block';
+    document.getElementById('errorMsg').style.display = 'none';
+}
+</script>
+{% endblock %}

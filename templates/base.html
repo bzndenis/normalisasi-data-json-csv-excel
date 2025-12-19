@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Data Normalization App{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <i class="bi bi-shield-check"></i>
+                <span>Data Normalization</span>
+            </div>
+            <nav class="nav">
+                <a href="/" class="nav-link"><i class="bi bi-house-door"></i> Home</a>
+                <a href="/upload" class="nav-link"><i class="bi bi-upload"></i> Upload</a>
+                <a href="/docs" class="nav-link" target="_blank"><i class="bi bi-book"></i> API Docs</a>
+            </nav>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer style="text-align: center; padding: 2rem; color: white; margin-top: 3rem;">
+        <p>&copy; 2024 Data Normalization App. Built with FastAPI & Modern Web Technologies.</p>
+    </footer>
+    
+    <!-- JavaScript -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

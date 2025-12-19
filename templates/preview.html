@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Preview Results - Data Normalization App{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 2rem; padding-bottom: 3rem;">
+    <div class="card">
+        <div class="card-header text-center">
+            <h1 class="card-title"><i class="bi bi-eye"></i> Preview Hasil Normalisasi</h1>
+            <p class="card-subtitle">Perbandingan data sebelum dan sesudah normalisasi</p>
+        </div>
+        
+        <!-- Loading State -->
+        <div id="loadingState" style="text-align: center; padding: 3rem;">
+            <div class="spinner" style="margin: 0 auto 1rem;"></div>
+            <p style="color: var(--text-muted);">Memuat preview...</p>
+        </div>
+        
+        <!-- Error State -->
+        <div id="errorState" style="display: none;">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle" style="font-size: 1.5rem;"></i>
+                <div>
+                    <strong>Gagal memuat preview</strong>
+                    <p id="errorMessage" style="margin-top: 0.5rem;"></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div id="mainContent" style="display: none;">
+            <!-- Statistics Summary -->
+            <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 2rem; border-radius: var(--radius-lg); color: white; margin-bottom: 2rem;">
+                <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 1rem; text-align: center;">
+                    📊 Ringkasan Perubahan
+                </h2>
+                <div id="statisticsSummary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                    <!-- Stats will be inserted here -->
+                </div>
+            </div>
+            
+            <!-- Column-by-Column Changes -->
+            <div style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;">
+                    <i class="bi bi-bar-chart"></i> Perubahan Per Kolom
+                </h3>
+                <div id="columnStats">
+                    <!-- Column stats will be inserted here -->
+                </div>
+            </div>
+            
+            <!-- Before & After Comparison -->
+            <div style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;">
+                    <i class="bi bi-arrows-expand"></i> Perbandingan Before vs After
+                </h3>
+                
+                <!-- Tab Selection -->
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--gray-200);">
+                    <button class="preview-tab active" onclick="switchPreviewTab('side-by-side')" id="tab-side">
+                        <i class="bi bi-columns-gap"></i> Side by Side
+                    </button>
+                    <button class="preview-tab" onclick="switchPreviewTab('original')" id="tab-original">
+                        <i class="bi bi-file-text"></i> Data Original
+                    </button>
+                    <button class="preview-tab" onclick="switchPreviewTab('normalized')" id="tab-normalized">
+                        <i class="bi bi-file-check"></i> Data Normalized
+                    </button>
+                </div>
+                
+                <!-- Side by Side View -->
+                <div id="view-side-by-side" class="preview-view active">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div>
+                            <div style="background: #fee2e2; color: #991b1b; padding: 0.75rem; border-radius: var(--radius-md); text-align: center; font-weight: 700; margin-bottom: 1rem;">
+                                ❌ BEFORE (Original)
+                            </div>
+                            <div class="table-container" style="max-height: 500px; overflow: auto;">
+                                <table class="table">
+                                    <thead id="originalTableHead"></thead>
+                                    <tbody id="originalTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="background: #d1fae5; color: #065f46; padding: 0.75rem; border-radius: var(--radius-md); text-align: center; font-weight: 700; margin-bottom: 1rem;">
+                                ✅ AFTER (Normalized)
+                            </div>
+                            <div class="table-container" style="max-height: 500px; overflow: auto;">
+                                <table class="table">
+                                    <thead id="normalizedTableHead"></thead>
+                                    <tbody id="normalizedTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Original View -->
+                <div id="view-original" class="preview-view">
+                    <div class="table-container" style="max-height: 500px; overflow: auto;">
+                        <table class="table">
+                            <thead id="originalFullTableHead"></thead>
+                            <tbody id="originalFullTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Normalized View -->
+                <div id="view-normalized" class="preview-view">
+                    <div class="table-container" style="max-height: 500px; overflow: auto;">
+                        <table class="table">
+                            <thead id="normalizedFullTableHead"></thead>
+                            <tbody id="normalizedFullTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div style="display: flex; gap: 1rem; justify-content: center; padding-top: 2rem; border-top: 2px solid var(--gray-200);">
+                <a href="/normalize/{{ original_file_id }}" class="btn btn-outline">
+                    <i class="bi bi-arrow-counterclockwise"></i> Atur Ulang Normalisasi
+                </a>
+                <a href="/export/{{ normalized_file_id }}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-download"></i> Export Hasil
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.preview-tab {
+    flex: 1;
+    padding: 1rem 2rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    position: relative;
+    transition: all var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.preview-tab:hover {
+    color: var(--primary-color);
+}
+
+.preview-tab.active {
+    color: var(--primary-color);
+}
+
+.preview-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--primary-color);
+}
+
+.preview-view {
+    display: none;
+}
+
+.preview-view.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.changed-cell {
+    background: rgba(16, 185, 129, 0.15);
+    font-weight: 600;
+    position: relative;
+}
+
+.changed-cell::before {
+    content: '✓';
+    position: absolute;
+    left: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--secondary-color);
+    font-weight: 800;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const originalFileId = "{{ original_file_id }}";
+const normalizedFileId = "{{ normalized_file_id }}";
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadPreviewData();
+});
+
+async function loadPreviewData() {
+    try {
+        const response = await fetch(`/api/normalize/preview/${originalFileId}/${normalizedFileId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Hide loading, show content
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        
+        // Display data
+        displayStatistics(data.changes_summary);
+        displayComparison(data.original_data, data.normalized_data);
+        
+    } catch (error) {
+        console.error('Error loading preview:', error);
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = 'block';
+        document.getElementById('errorMessage').textContent = error.message;
+    }
+}
+
+function displayStatistics(summary) {
+    // Overall summary
+    let totalChanged = 0;
+    let totalUnchanged = 0;
+    
+    summary.forEach(stat => {
+        totalChanged += stat.rows_changed;
+        totalUnchanged += stat.rows_unchanged;
+    });
+    
+    const totalRows = totalChanged + totalUnchanged;
+    const changePercentage = totalRows > 0 ? ((totalChanged / totalRows) * 100).toFixed(1) : 0;
+    
+    const summaryContainer = document.getElementById('statisticsSummary');
+    summaryContainer.innerHTML = `
+        <div style="text-align: center;">
+            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Perubahan</div>
+            <div style="font-size: 2.5rem; font-weight: 800;">${totalChanged.toLocaleString()}</div>
+            <div style="font-size: 0.85rem; opacity: 0.8;">baris</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">Tidak Berubah</div>
+            <div style="font-size: 2.5rem; font-weight: 800;">${totalUnchanged.toLocaleString()}</div>
+            <div style="font-size: 0.85rem; opacity: 0.8;">baris</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">Persentase</div>
+            <div style="font-size: 2.5rem; font-weight: 800;">${changePercentage}%</div>
+            <div style="font-size: 0.85rem; opacity: 0.8;">perubahan</div>
+        </div>
+    `;
+    
+    // Column-by-column stats
+    const columnStatsContainer = document.getElementById('columnStats');
+    columnStatsContainer.innerHTML = summary.map(stat => {
+        const percentage = stat.change_percentage;
+        const barColor = percentage > 50 ? '#10b981' : percentage > 25 ? '#f59e0b' : '#6366f1';
+        
+        return `
+            <div style="background: var(--gray-50); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <strong>${stat.column_name}</strong>
+                    <span class="badge badge-info">${stat.rows_changed} perubahan (${percentage}%)</span>
+                </div>
+                <div style="background: var(--gray-200); height: 8px; border-radius: 999px; overflow: hidden;">
+                    <div style="background: ${barColor}; height: 100%; width: ${percentage}%; transition: width 0.5s ease;"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function displayComparison(originalData, normalizedData) {
+    if (!originalData || !normalizedData || originalData.length === 0) {
+        return;
+    }
+    
+    const columns = Object.keys(originalData[0]);
+    
+    // Side by side view
+    renderTable('originalTableHead', 'originalTableBody', originalData, columns);
+    renderTable('normalizedTableHead', 'normalizedTableBody', normalizedData, columns);
+    
+    // Full views
+    renderTable('originalFullTableHead', 'originalFullTableBody', originalData, columns);
+    renderTable('normalizedFullTableHead', 'normalizedFullTableBody', normalizedData, columns);
+    
+    // Highlight changes in normalized tables
+    highlightChanges(normalizedData, originalData, columns);
+}
+
+function renderTable(headId, bodyId, data, columns) {
+    // Header
+    const thead = document.getElementById(headId);
+    thead.innerHTML = `
+        <tr>
+            ${columns.map(col => `<th>${col}</th>`).join('')}
+        </tr>
+    `;
+    
+    // Body
+    const tbody = document.getElementById(bodyId);
+    tbody.innerHTML = '';
+    
+    data.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+        columns.forEach(col => {
+            const td = document.createElement('td');
+            const value = row[col];
+            td.textContent = value === null ? 'NULL' : value;
+            td.dataset.row = rowIndex;
+            td.dataset.col = col;
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+}
+
+function highlightChanges(normalizedData, originalData, columns) {
+    ['normalizedTableBody', 'normalizedFullTableBody'].forEach(bodyId => {
+        const tbody = document.getElementById(bodyId);
+        const cells = tbody.querySelectorAll('td');
+        
+        cells.forEach(cell => {
+            const rowIndex = parseInt(cell.dataset.row);
+            const colName = cell.dataset.col;
+            
+            const originalValue = originalData[rowIndex][colName];
+            const normalizedValue = normalizedData[rowIndex][colName];
+            
+            if (String(originalValue) !== String(normalizedValue)) {
+                cell.classList.add('changed-cell');
+                cell.title = `Original: ${originalValue}\nNormalized: ${normalizedValue}`;
+            }
+        });
+    });
+}
+
+function switchPreviewTab(viewName) {
+    // Update tabs
+    document.querySelectorAll('.preview-tab').forEach(tab => tab.classList.remove('active'));
+    document.getElementById('tab-' + (viewName === 'side-by-side' ? 'side' : viewName)).classList.add('active');
+    
+    // Update views
+    document.querySelectorAll('.preview-view').forEach(view => view.classList.remove('active'));
+    document.getElementById('view-' + viewName).classList.add('active');
+}
+</script>
+{% endblock %}
