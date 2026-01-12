@@ -258,20 +258,6 @@ class PendampinganService:
                     email_raw = self.safe_str(record.get(self.JSON_FIELD_MAPPING['email']))
                     no_sk_raw = self.safe_str(record.get(self.JSON_FIELD_MAPPING['no_sk_kps']))
                     
-                    if not email_raw:
-                        stats['failed'] += 1
-                        if stats['failed'] <= 5:
-                            logger.error(f"Row {idx} Failed. Keys found: {list(record.keys())}. Values: {record}")
-                        
-                        failed_details.append({
-                            'row': idx,
-                            'reason': 'email_missing',
-                            'message': 'Email is required',
-                            'record': record
-                        })
-                        yield f"data: {json.dumps({'log': f'Row {idx}: Email missing'})}\n\n"
-                        continue
-
                     if not no_sk_raw:
                         stats['failed'] += 1
                         failed_details.append({
@@ -315,7 +301,18 @@ class PendampinganService:
                                     cur_create.close()
                         else:
                             # User does not exist -> Create User AND Master Pendamping
-                            # Note: No need to generate dummy email, we checked valid email above
+                            # Creation requires EMAIL. If missing here, we fail.
+                            if not email_raw:
+                                stats['failed'] += 1
+                                failed_details.append({
+                                    'row': idx,
+                                    'reason': 'email_missing_new_user',
+                                    'message': 'Email is required to create a new user',
+                                    'record': record
+                                })
+                                yield f"data: {json.dumps({'log': f'Row {idx}: Email missing for new user'})}\n\n"
+                                continue
+
                             pendamping_id, user_id = self.create_pendamping(conn, record)
                             if pendamping_id:
                                 stats['created'] += 1
