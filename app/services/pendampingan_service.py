@@ -112,11 +112,11 @@ class PendampinganService:
         try:
             # Search logic
             if schema_normalized:
-                cur.execute("SELECT id FROM master_kps WHERE TRIM(no_sk) = TRIM(%s) AND LOWER(TRIM(COALESCE(schema, ''))) = %s LIMIT 1", (no_sk_str, schema_normalized))
+                cur.execute("SELECT id FROM master_kps WHERE TRIM(no_sk_normalized) = TRIM(%s) AND LOWER(TRIM(COALESCE(schema, ''))) = %s LIMIT 1", (no_sk_str, schema_normalized))
                 res = cur.fetchone()
                 if res: return res[0]
                 
-            cur.execute("SELECT id FROM master_kps WHERE TRIM(no_sk) = TRIM(%s) LIMIT 1", (no_sk_str,))
+            cur.execute("SELECT id FROM master_kps WHERE TRIM(no_sk_normalized) = TRIM(%s) LIMIT 1", (no_sk_str,))
             res = cur.fetchone()
             if res: return res[0]
             
@@ -146,8 +146,8 @@ class PendampinganService:
                     # Insert new KPS
                     cur.execute("""
                         INSERT INTO master_kps (
-                            no_sk, schema, kps_name, 
-                            provinsi, kabupaten_kota, kecamatan, desa_kelurahan,
+                            no_sk_normalized, schema, nama_kps, 
+                            nama_prov, nama_kab, nama_kec, nama_desa,
                             luas_sk, created_at, updated_at
                         ) VALUES (
                             %s, %s, %s,
@@ -246,6 +246,11 @@ class PendampinganService:
             last_user_id = None
             last_tahun = None
             
+            if len(data) > 0:
+                logger.info(f"FIRST RECORD KEYS: {list(data[0].keys())}")
+                logger.info(f"FIRST RECORD EMAIL VALUE (Raw): {data[0].get('EMAIL')}")
+                logger.info(f"Mapping expect: {self.JSON_FIELD_MAPPING['email']}")
+
             for idx, record in enumerate(data, 1):
                 try:
                     # Logic adaptation from reference
@@ -255,6 +260,9 @@ class PendampinganService:
                     
                     if not email_raw:
                         stats['failed'] += 1
+                        if stats['failed'] <= 5:
+                            logger.error(f"Row {idx} Failed. Keys found: {list(record.keys())}. Values: {record}")
+                        
                         failed_details.append({
                             'row': idx,
                             'reason': 'email_missing',
