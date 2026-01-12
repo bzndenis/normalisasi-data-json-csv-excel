@@ -122,9 +122,51 @@ class PendampinganService:
             
             # Create logic if not found and allowed
             if record and is_valid_schema:
-                # Assuming create_master_kps logic here (simplified for brevity)
-                # In real port, we should include the full create logic
-                pass
+                try:
+                    # Extract fields for creation
+                    nama_kps = self.safe_str(record.get(self.JSON_FIELD_MAPPING['kps']))
+                    # Enforce name presence
+                    if not nama_kps:
+                        logger.warning(f"Cannot create KPS for {no_sk_str}: Missing KPS Name")
+                        return None
+
+                    provinsi = self.safe_str(record.get('PROVINSI'))
+                    kab_kota = self.safe_str(record.get('KABUPATEN/KOTA'))
+                    kecamatan = self.safe_str(record.get('KECAMATAN'))
+                    desa = self.safe_str(record.get('DESA/KELURAHAN'))
+                    
+                    luas_str = record.get('LUAS SK PS')
+                    luas_sk = None
+                    if luas_str:
+                        try:
+                            luas_sk = float(luas_str)
+                        except (ValueError, TypeError):
+                            pass
+
+                    # Insert new KPS
+                    cur.execute("""
+                        INSERT INTO master_kps (
+                            no_sk, schema, kps_name, 
+                            provinsi, kabupaten_kota, kecamatan, desa_kelurahan,
+                            luas_sk, created_at, updated_at
+                        ) VALUES (
+                            %s, %s, %s,
+                            %s, %s, %s, %s,
+                            %s, NOW(), NOW()
+                        ) RETURNING id
+                    """, (
+                        no_sk_str, schema_normalized, nama_kps,
+                        provinsi, kab_kota, kecamatan, desa,
+                        luas_sk
+                    ))
+                    
+                    new_id = cur.fetchone()[0]
+                    logger.info(f"Created new master_kps: {no_sk_str} ({schema_normalized}) - {nama_kps}")
+                    return new_id
+                    
+                except Exception as e:
+                    logger.error(f"Failed to auto-create KPS {no_sk_str}: {e}")
+                    return None
                 
             return None
         finally:
@@ -207,7 +249,33 @@ class PendampinganService:
             for idx, record in enumerate(data, 1):
                 try:
                     # Logic adaptation from reference
-                    # 1. Resolve Pendamping
+                    # 1. Validation (Email & No SK mandatories)
+                    email_raw = self.safe_str(record.get(self.JSON_FIELD_MAPPING['email']))
+                    no_sk_raw = self.safe_str(record.get(self.JSON_FIELD_MAPPING['no_sk_kps']))
+                    
+                    if not email_raw:
+                        stats['failed'] += 1
+                        failed_details.append({
+                            'row': idx,
+                            'reason': 'email_missing',
+                            'message': 'Email is required',
+                            'record': record
+                        })
+                        yield f"data: {json.dumps({'log': f'Row {idx}: Email missing'})}\n\n"
+                        continue
+
+                    if not no_sk_raw:
+                        stats['failed'] += 1
+                        failed_details.append({
+                            'row': idx,
+                            'reason': 'no_sk_missing',
+                            'message': 'No SK KPS is required',
+                            'record': record
+                        })
+                        yield f"data: {json.dumps({'log': f'Row {idx}: No SK KPS missing'})}\n\n"
+                        continue
+
+                    # 2. Resolve Pendamping
                     no_value = record.get(self.JSON_FIELD_MAPPING['no'])
                     is_no_empty = (no_value is None or self.safe_str(no_value) == '')
                     
@@ -239,6 +307,7 @@ class PendampinganService:
                                     cur_create.close()
                         else:
                             # User does not exist -> Create User AND Master Pendamping
+                            # Note: No need to generate dummy email, we checked valid email above
                             pendamping_id, user_id = self.create_pendamping(conn, record)
                             if pendamping_id:
                                 stats['created'] += 1
@@ -250,7 +319,7 @@ class PendampinganService:
                     
                     if not pendamping_id:
                         stats['failed'] += 1
-                        error_msg = f"Pendamping not found and creation failed: {self.safe_str(record.get(self.JSON_FIELD_MAPPING['email']))} / {self.safe_str(record.get(self.JSON_FIELD_MAPPING['nama_pendamping']))}"
+                        error_msg = f"Pendamping not found and creation failed: {email_raw} / {self.safe_str(record.get(self.JSON_FIELD_MAPPING['nama_pendamping']))}"
                         failed_details.append({
                             'row': idx,
                             'reason': 'pendamping_creation_failed',
@@ -260,7 +329,7 @@ class PendampinganService:
                         yield f"data: {json.dumps({'log': f'Row {idx}: {error_msg}'})}\n\n"
                         continue
 
-                    # 2. Year
+                    # 3. Year
                     tahun = self.safe_str(record.get(self.JSON_FIELD_MAPPING['tahun_pendampingan']))
                     if is_no_empty and not tahun and last_tahun:
                         tahun = last_tahun
@@ -277,10 +346,18 @@ class PendampinganService:
                         })
                         continue
 
-                    # 3. Resolve KPS
+                    # 4. Resolve KPS
                     no_sk = record.get(self.JSON_FIELD_MAPPING['no_sk_kps'])
                     skema = record.get(self.JSON_FIELD_MAPPING['skema_ps'])
                     kps_id = self.resolve_kps_id(conn, no_sk, skema, record)
+                    
+                    # Optional: Fail if KPS ID not resolved? 
+                    # If No SK was present but invalid/not found, kps_id is None.
+                    # Per user request "jika nomor sk ... tidak ada", we handled the *missing string* case.
+                    # If the SK string exists but is not in DB, do we fail?
+                    # "reference/import_pendampingan.py" allowed NULL kps_id.
+                    # I will keep allowing NULL kps_id if resolve fails (but string exists), 
+                    # ONLY failing if the string itself was missing (checked above).
                     
                     # 4. Insert
                     cur = conn.cursor()

@@ -1,543 +1,343 @@
 {% extends "base.html" %}
 
-{% block title %}Manajemen Data Pendampingan - {{ super() }}{% endblock %}
+{% block title %}Manajemen Data Pendampingan - Data Normalization App{% endblock %}
 
 {% block extra_css %}
 <style>
-    :root {
-        --glass-bg: rgba(255, 255, 255, 0.1);
-        --glass-border: rgba(255, 255, 255, 0.2);
-        --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        --accent-glow: 0 0 20px rgba(66, 133, 244, 0.5);
-    }
+/* Tab Styles from upload.html */
+.tab-btn {
+    flex: 1;
+    padding: 1rem 2rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-secondary, #6c757d);
+    position: relative;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
 
-    .hero {
-        text-align: center;
-        margin-bottom: 3rem;
-        position: relative;
-    }
+.tab-btn:hover {
+    color: var(--primary-color, #0d6efd);
+}
 
-    .hero h1 {
-        font-weight: 800;
-        font-size: 2.5rem;
-        background: linear-gradient(to right, #ffffff, #e0e7ff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        margin-bottom: 0.5rem;
-    }
+.tab-btn.active {
+    color: var(--primary-color, #0d6efd);
+}
 
-    .hero .subtitle {
-        color: rgba(255, 255, 255, 0.8);
-        font-size: 1.1rem;
-        font-weight: 300;
-        letter-spacing: 0.5px;
-    }
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--primary-color, #0d6efd);
+    border-radius: 3px 3px 0 0;
+}
 
-    /* Main Grid Layout */
-    .dashboard-grid {
-        display: grid;
-        grid-template-columns: 280px 1fr;
-        gap: 2rem;
-        align-items: start;
-    }
+.tab-content {
+    display: none;
+    padding: 1.5rem 0;
+}
 
-    /* Sidebar Navigation (Tool Cards) */
-    .nav-card-container {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+}
 
-    .tool-card {
-        background: var(--glass-bg);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        border: 1px solid var(--glass-border);
-        border-radius: 16px;
-        padding: 1.25rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-    }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-    .tool-card::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        height: 100%;
-        width: 4px;
-        background: #4285f4;
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
+/* Upload Area Styles */
+.file-upload {
+    border: 2px dashed #ddd;
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    background: #f8f9fa;
+    transition: all 0.3s;
+    cursor: pointer;
+}
 
-    .tool-card:hover {
-        transform: translateX(5px);
-        background: rgba(255, 255, 255, 0.15);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
+.file-upload:hover, .file-upload.dragover {
+    border-color: var(--primary-color, #0d6efd);
+    background: #e9ecef;
+}
 
-    .tool-card.active {
-        background: linear-gradient(90deg, rgba(66, 133, 244, 0.2), rgba(66, 133, 244, 0.05));
-        border-color: #4285f4;
-        box-shadow: var(--accent-glow);
-    }
+/* Stats Cards */
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
 
-    .tool-card.active::before {
-        opacity: 1;
-    }
+.stat-card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
 
-    .tool-icon {
-        width: 40px;
-        height: 40px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.25rem;
-        color: #fff;
-        transition: all 0.3s;
-    }
+.stat-number {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #212529;
+    margin-bottom: 0.25rem;
+}
 
-    .tool-card.active .tool-icon {
-        background: #4285f4;
-        transform: scale(1.1);
-    }
+.stat-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
 
-    .tool-info {
-        flex: 1;
-    }
+/* Terminal Window */
+.terminal-window {
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 0;
+    margin-top: 1.5rem;
+    border: 1px solid #333;
+    font-family: 'Consolas', 'Monaco', monospace;
+    overflow: hidden;
+}
 
-    .tool-title {
-        font-weight: 600;
-        color: #fff;
-        margin-bottom: 0.1rem;
-    }
+.terminal-header {
+    background: #2d2d2d;
+    padding: 0.5rem 1rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    border-bottom: 1px solid #333;
+}
 
-    .tool-desc {
-        font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.6);
-    }
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot-red { background: #ff5f56; }
+.dot-yellow { background: #ffbd2e; }
+.dot-green { background: #27c93f; }
 
-    /* Content Panels */
-    .panel-container {
-        background: var(--glass-bg);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid var(--glass-border);
-        border-radius: 24px;
-        padding: 2.5rem;
-        box-shadow: var(--glass-shadow);
-        min-height: 500px;
-        position: relative;
-    }
+.terminal-content {
+    padding: 1rem;
+    color: #d4d4d4;
+    font-size: 0.85rem;
+    height: 300px;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
 
-    .action-panel {
-        display: none;
-        animation: fadeIn 0.4s ease-out;
-    }
+.log-line { margin-bottom: 0.2rem; }
+.log-success { color: #4ade80; }
+.log-error { color: #f87171; }
+.log-info { color: #60a5fa; }
 
-    .action-panel.active {
-        display: block;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .panel-header {
-        margin-bottom: 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .panel-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #fff;
-    }
-
-    /* Upload Area - Improved */
-    .upload-area {
-        border: 2px dashed rgba(255, 255, 255, 0.2);
-        border-radius: 20px;
-        padding: 4rem 2rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s;
-        background: rgba(0, 0, 0, 0.1);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .upload-area:hover, .upload-area.dragover {
-        border-color: #4285f4;
-        background: rgba(66, 133, 244, 0.1);
-        transform: scale(1.01);
-    }
-
-    .file-input {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        top: 0;
-        left: 0;
-        opacity: 0;
-        cursor: pointer;
-        z-index: 10;
-    }
-
-    .upload-icon-wrapper {
-        width: 80px;
-        height: 80px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 1.5rem;
-        transition: transform 0.3s;
-    }
-
-    .upload-area:hover .upload-icon-wrapper {
-        transform: translateY(-5px) rotate(5deg);
-        background: rgba(66, 133, 244, 0.2);
-    }
-    
-    .upload-area h4 {
-        color: #fff;
-        margin-bottom: 0.5rem;
-    }
-
-    /* Progress & Terminal */
-    .progress-wrapper {
-        margin-top: 2rem;
-        background: rgba(0, 0, 0, 0.2);
-        padding: 1.5rem;
-        border-radius: 16px;
-        display: none;
-    }
-
-    .progress-bar-container {
-        height: 10px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 5px;
-        overflow: hidden;
-        margin-bottom: 0.5rem;
-    }
-
-    .progress-bar-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #4285f4, #34a853);
-        width: 0%;
-        transition: width 0.3s ease;
-        box-shadow: 0 0 10px rgba(66, 133, 244, 0.5);
-    }
-
-    .terminal-window {
-        background: #1e1e1e;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        margin-top: 1.5rem;
-        font-family: 'Consolas', 'Monaco', monospace;
-        overflow: hidden;
-        display: none;
-        border: 1px solid #333;
-    }
-
-    .terminal-header {
-        background: #2d2d2d;
-        padding: 0.5rem 1rem;
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        border-bottom: 1px solid #333;
-    }
-
-    .terminal-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-    }
-
-    .dot-red { background: #ff5f56; }
-    .dot-yellow { background: #ffbd2e; }
-    .dot-green { background: #27c93f; }
-
-    .terminal-content {
-        padding: 1rem;
-        color: #d4d4d4;
-        font-size: 0.9rem;
-        height: 300px;
-        max-height: 300px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-    }
-    
-    .log-line { margin-bottom: 0.2rem; }
-    .log-success { color: #4ade80; }
-    .log-error { color: #f87171; }
-    .log-info { color: #60a5fa; }
-
-    /* Stats Cards */
-    .stats-container {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
-        margin-top: 1.5rem;
-        display: none;
-    }
-
-    .stat-card {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 1rem;
-        text-align: center;
-    }
-
-    .stat-number {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #fff;
-    }
-    
-    .stat-label {
-        font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.6);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-
-    /* Buttons */
-    .btn-action {
-        background: linear-gradient(135deg, #4285f4, #3b82f6);
-        color: white;
-        border: none;
-        padding: 1rem 2rem;
-        border-radius: 12px;
-        font-weight: 600;
-        font-size: 1rem;
-        cursor: pointer;
-        width: 100%;
-        transition: all 0.3s;
-        box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 1rem;
-    }
-
-    .btn-action:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(66, 133, 244, 0.5);
-    }
-    
-    .btn-action:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    /* Responsive */
-    @media (max-width: 900px) {
-        .dashboard-grid {
-            grid-template-columns: 1fr;
-        }
-        .nav-card-container {
-            flex-direction: row;
-            overflow-x: auto;
-            padding-bottom: 0.5rem;
-        }
-        .tool-card {
-            flex: 1;
-            min-width: 200px;
-        }
-    }
+/* Responsive */
+@media (max-width: 768px) {
+    .stats-container { grid-template-columns: repeat(2, 1fr); }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container glass-theme">
-    <div class="hero">
-        <h1>Manajemen Data Pendampingan</h1>
-        <p class="subtitle">Import, Validasi, dan Monitoring Kinerja Sistem</p>
-    </div>
-
-    <div class="dashboard-grid">
-        <!-- Sidebar Navigation -->
-        <div class="nav-card-container">
-            <div class="tool-card active" onclick="switchTab('import')">
-                <div class="tool-icon"><i class="bi bi-cloud-arrow-up-fill"></i></div>
-                <div class="tool-info">
-                    <div class="tool-title">Import Data</div>
-                    <div class="tool-desc">Upload JSON ke Database</div>
-                </div>
-            </div>
-            
-            <div class="tool-card" onclick="switchTab('validate')">
-                <div class="tool-icon"><i class="bi bi-shield-check-fill"></i></div>
-                <div class="tool-info">
-                    <div class="tool-title">Validasi</div>
-                    <div class="tool-desc">Cek & Perbaiki Data</div>
-                </div>
-            </div>
-            
-            <div class="tool-card" onclick="switchTab('logs')">
-                <div class="tool-icon"><i class="bi bi-terminal-fill"></i></div>
-                <div class="tool-info">
-                    <div class="tool-title">System Logs</div>
-                    <div class="tool-desc">Monitoring Proses</div>
-                </div>
-            </div>
+<div class="container" style="padding-top: 2rem; padding-bottom: 3rem;">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white border-bottom-0 text-center pb-0 pt-4">
+            <h2 class="card-title fw-bold mb-1">Manajemen Data Pendampingan</h2>
+            <p class="text-muted">Import, Validasi, dan Monitoring Kinerja Sistem</p>
         </div>
         
-        <!-- Main Content Area -->
-        <div class="panel-container">
-            
-            <!-- Import Panel -->
-            <div id="import-panel" class="action-panel active">
-                <div class="panel-header">
-                    <div class="panel-title">Import Data Pendampingan</div>
-                    <div class="badge badge-info">JSON Format Only</div>
-                </div>
-                
-                <form id="import-form">
-                    <div class="upload-area" id="import-dropzone">
-                        <input type="file" class="file-input" name="file" id="import-file" accept=".json" required>
-                        <div class="upload-icon-wrapper">
-                            <i class="bi bi-filetype-json" style="font-size: 2.5rem; color: #fff;"></i>
-                        </div>
-                        <h4 id="import-filename">Drop file JSON disini atau klik untuk upload</h4>
-                        <p class="text-muted">Maksimal ukuran file 10MB</p>
-                    </div>
-                    
-                    <button type="submit" class="btn-action" id="btn-import">
-                        <i class="bi bi-rocket-takeoff"></i> Mulai Proses Import
-                    </button>
-                </form>
-                
-                <div class="progress-wrapper" id="import-progress">
-                    <div class="d-flex justify-between mb-2" style="color: #ccc;">
-                        <span><i class="bi bi-gear-wide-connected spin"></i> Processing data...</span>
-                        <span id="import-percent">0%</span>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" id="import-bar"></div>
-                    </div>
-                </div>
-                
-                <div class="stats-container" id="import-stats">
-                    <div class="stat-card">
-                        <div class="stat-number" id="stat-total">0</div>
-                        <div class="stat-label">Records</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number text-success" style="color: #4ade80;" id="stat-success">0</div>
-                        <div class="stat-label">Success</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number text-info" style="color: #60a5fa;" id="stat-created">0</div>
-                        <div class="stat-label">New Users</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number text-danger" style="color: #f87171;" id="stat-failed">0</div>
-                        <div class="stat-label">Failed</div>
-                    </div>
-                </div>
-                
-                <a id="download-failed-btn" href="#" class="btn-action" style="background: linear-gradient(135deg, #ef4444, #b91c1c); display: none; margin-top: 1rem;">
-                    <i class="bi bi-file-earmark-x"></i> Download Failed Records Report
-                </a>
-                
-                <div class="terminal-window" id="import-log-window">
-                    <div class="terminal-header">
-                        <div class="terminal-dot dot-red"></div>
-                        <div class="terminal-dot dot-yellow"></div>
-                        <div class="terminal-dot dot-green"></div>
-                        <span style="margin-left: 10px; font-size: 0.8rem; color: #888;">console output</span>
-                    </div>
-                    <div class="terminal-content" id="import-log"></div>
-                </div>
+        <div class="card-body p-0">
+            <!-- Tab Navigation -->
+            <div style="display: flex; border-bottom: 1px solid #dee2e6; padding: 0 1rem;">
+                <button class="tab-btn active" onclick="switchTab('import')" id="tab-import">
+                    <i class="bi bi-cloud-arrow-up-fill"></i> Import Data
+                </button>
+                <button class="tab-btn" onclick="switchTab('validate')" id="tab-validate">
+                    <i class="bi bi-shield-check-fill"></i> Validasi
+                </button>
+                <button class="tab-btn" onclick="switchTab('logs')" id="tab-logs">
+                    <i class="bi bi-terminal-fill"></i> System Logs
+                </button>
             </div>
             
-            <!-- Validate Panel -->
-            <div id="validate-panel" class="action-panel">
-                 <div class="panel-header">
-                    <div class="panel-title">Validasi & Perbaikan Data</div>
+            <div class="p-4">
+                <!-- Import Panel -->
+                <div id="content-import" class="tab-content active">
+                    <form id="import-form">
+                        <div class="file-upload" id="import-dropzone">
+                            <i class="bi bi-cloud-upload" style="font-size: 3.5rem; color: var(--primary-color, #0d6efd); margin-bottom: 1rem;"></i>
+                            <h4 class="mb-2">Drop file JSON di sini atau klik untuk upload</h4>
+                            <p class="text-muted mb-4">Pastikan format JSON sesuai dengan template pendampingan</p>
+                            
+                            <input type="file" id="import-file" name="file" accept=".json" style="display: none;">
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('import-file').click()">
+                                <i class="bi bi-folder2-open"></i> Browse File
+                            </button>
+                        </div>
+                        
+                        <!-- File Info Block -->
+                        <div id="import-file-info" class="alert alert-info mt-3 align-items-center" style="display: none;">
+                            <i class="bi bi-file-earmark-check fs-4 me-2"></i>
+                            <div>
+                                <strong id="import-filename">No file selected</strong>
+                            </div>
+                        </div>
+
+                        <!-- Preview Container -->
+                        <div id="preview-container" style="display: none; margin-top: 1.5rem;">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h5 class="mb-1"><i class="bi bi-table"></i> Data Preview & Correction</h5>
+                                    <small class="text-muted">Review data before processing. Edit cells directly.</small>
+                                </div>
+                            </div>
+                            
+                            <div id="preview-table-container" style="margin-bottom: 1rem; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;"></div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="button" class="btn btn-outline-secondary me-md-2" onclick="location.reload()">
+                                    <i class="bi bi-x-circle"></i> Cancel
+                                </button>
+                                <button type="button" class="btn btn-primary" id="btn-process-preview">
+                                    <i class="bi bi-rocket-takeoff"></i> Process Data Now
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Default Submit (Hidden when preview active) -->
+                        <div class="text-center mt-4" id="default-actions" style="display: none;">
+                             <!-- Kept for fallback logic, but usually we use preview flow -->
+                        </div>
+                    </form>
+                    
+                    <!-- Progress & Stats (Hidden Initially) -->
+                    <div class="progress-wrapper" id="import-progress" style="display: none; margin-top: 2rem;">
+                         <div class="d-flex justify-content-between mb-2">
+                             <span class="text-muted"><i class="bi bi-gear-wide-connected spin"></i> Processing data...</span>
+                             <span id="import-percent" class="fw-bold">0%</span>
+                         </div>
+                         <div class="progress" style="height: 10px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" id="import-bar" role="progressbar" style="width: 0%"></div>
+                         </div>
+                         
+                         <!-- Stats -->
+                         <div class="stats-container" id="import-stats" style="display: none;">
+                            <div class="stat-card">
+                                <div class="stat-number" id="stat-total">0</div>
+                                <div class="stat-label">Total</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number text-success" id="stat-success">0</div>
+                                <div class="stat-label">Success</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number text-primary" id="stat-created">0</div>
+                                <div class="stat-label">New Users</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number text-danger" id="stat-failed">0</div>
+                                <div class="stat-label">Failed</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-center mt-3">
+                             <a id="download-failed-btn" href="#" class="btn btn-danger" style="display: none;">
+                                <i class="bi bi-file-earmark-arrow-down"></i> Download Failed Report
+                            </a>
+                        </div>
+                        
+                        <!-- Log Window -->
+                        <div class="terminal-window" id="import-log-window">
+                            <div class="terminal-header">
+                                <div class="terminal-dot dot-red"></div>
+                                <div class="terminal-dot dot-yellow"></div>
+                                <div class="terminal-dot dot-green"></div>
+                                <span style="margin-left: 10px; font-size: 0.8rem; color: #888;">console output</span>
+                            </div>
+                            <div class="terminal-content" id="import-log"></div>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-muted mb-3">Upload file JSON referensi untuk membandingkan data dengan database dan menemukan inkonsistensi.</p>
                 
-                <form id="validate-form">
-                    <div class="upload-area mb-3" style="padding: 2rem;">
-                         <input type="file" class="file-input" name="file" id="validate-file" accept=".json" required>
-                         <div class="upload-icon-wrapper" style="width: 60px; height: 60px;">
-                            <i class="bi bi-search" style="font-size: 1.5rem; color: #fff;"></i>
-                        </div>
-                        <h4 id="validate-filename" style="font-size: 1rem;">Pilih File Referensi</h4>
+                <!-- Validate Panel -->
+                <div id="content-validate" class="tab-content">
+                     <div class="alert alert-light border mb-4">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Upload file JSON referensi untuk membandingkan data dengan database dan menemukan inkonsistensi.
                     </div>
-                    
-                    <div class="d-flex gap-3 mb-3 p-3" style="background: rgba(255,255,255,0.05); border-radius: 12px;">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="check-fix" name="fix">
-                            <label class="form-check-label text-white" for="check-fix">
-                                Auto-Fix (Insert Missing)
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="check-dry-run" name="dry_run">
-                            <label class="form-check-label text-white" for="check-dry-run">
-                                Dry Run (Simulasi)
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="btn-action" id="btn-validate">
-                        <i class="bi bi-search"></i> Jalankan Validasi
-                    </button>
-                </form>
                 
-                <div class="terminal-window" id="validate-log-window">
-                    <div class="terminal-header">
-                        <div class="terminal-dot dot-red"></div>
-                        <div class="terminal-dot dot-yellow"></div>
-                        <div class="terminal-dot dot-green"></div>
-                        <span style="margin-left: 10px; font-size: 0.8rem; color: #888;">validation results</span>
+                    <form id="validate-form">
+                        <div class="file-upload" id="validate-dropzone">
+                            <i class="bi bi-search" style="font-size: 3rem; color: #6c757d; margin-bottom: 1rem;"></i>
+                            <h5 class="mb-2">Pilih File Referensi</h5>
+                             <input type="file" id="validate-file" name="file" accept=".json" style="display: none;">
+                            <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('validate-file').click()">
+                                Browse File
+                            </button>
+                            <div id="validate-filename" class="mt-2 text-success fw-bold"></div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <div class="card bg-light border-0">
+                                    <div class="card-body">
+                                        <div class="form-check form-switch mb-2">
+                                            <input class="form-check-input" type="checkbox" id="check-fix" name="fix">
+                                            <label class="form-check-label" for="check-fix">Auto-Fix (Insert Missing)</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="check-dry-run" name="dry_run">
+                                            <label class="form-check-label" for="check-dry-run">Dry Run (Simulasi)</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-center">
+                                <button type="submit" class="btn btn-success w-100 py-3" id="btn-validate">
+                                    <i class="bi bi-search"></i> Jalankan Validasi
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <div class="terminal-window" id="validate-log-window" style="display: none;">
+                        <div class="terminal-header">
+                            <span style="font-size: 0.8rem; color: #888;">validation results</span>
+                        </div>
+                        <div class="terminal-content" id="validate-log">Waiting for input...</div>
                     </div>
-                    <div class="terminal-content" id="validate-log">Waiting for input...</div>
+                </div>
+                
+                <!-- Logs Panel -->
+                <div id="content-logs" class="tab-content">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                         <h5 class="mb-0">Activity Logs</h5>
+                         <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                    </div>
+                    <div class="terminal-window" style="display: block; margin-top: 0;">
+                        <div class="terminal-header">
+                             <span style="font-size: 0.8rem; color: #888;">root@server:~/logs</span>
+                        </div>
+                        <div class="terminal-content">
+                            <div class="log-line log-info">[INFO] System active</div>
+                            <div class="log-line">[INFO] Monitoring imports...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Logs Panel -->
-             <div id="logs-panel" class="action-panel">
-                <div class="panel-header">
-                    <div class="panel-title">System Activity Logs</div>
-                    <button class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-                </div>
-                
-                <div class="terminal-window" style="display: block; height: 400px; margin-top: 0;">
-                    <div class="terminal-header">
-                         <span style="font-size: 0.8rem; color: #888;">root@server:~/logs</span>
-                    </div>
-                    <div class="terminal-content">
-                        <div class="log-line log-info">[INFO] System initialized at {{ now_timestamp }}</div>
-                        <div class="log-line">[INFO] Database connection established</div>
-                        <div class="log-line">[INFO] Log rotation active</div>
-                        <div class="log-line log-success">[READY] Waiting for user actions...</div>
-                    </div>
-                </div>
-            </div>
-            
         </div>
     </div>
 </div>
@@ -545,65 +345,180 @@
 
 {% block extra_js %}
 <script>
-    // Tab Switching Logic
-    function switchTab(tabName) {
-        document.querySelectorAll('.tool-card').forEach(card => card.classList.remove('active'));
-        document.querySelectorAll('.action-panel').forEach(panel => panel.classList.remove('active'));
+    // Tab Switching
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
         
-        // Find active card based on onclick attribute containing the tabName
-        const cards = document.querySelectorAll('.tool-card');
-        if(tabName === 'import') cards[0].classList.add('active');
-        if(tabName === 'validate') cards[1].classList.add('active');
-        if(tabName === 'logs') cards[2].classList.add('active');
-        
-        document.getElementById(tabName + '-panel').classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById('content-' + tab).classList.add('active');
     }
-    
-    // File Input UX
-    ['import', 'validate'].forEach(type => {
-        const fileInput = document.getElementById(type + '-file');
-        const filenameDisplay = document.getElementById(type + '-filename');
-        const dropzone = document.getElementById(type + '-dropzone'); // if exists
+
+    // Preview Logic States
+    let previewData = [];
+    const REQUIRED_KEYS = {
+        'NAMA PENDAMPING': 'nama_pendamping',
+        'EMAIL': 'email',
+        'NO SK KPS': 'no_sk_kps',
+        'SKEMA PS': 'skema_ps',
+        'TAHUN PENDAMPINGAN': 'tahun_pendampingan',
+        'KPS': 'kps',
+        'PROVINSI': 'provinsi',
+        'KABUPATEN/KOTA': 'kabupaten',
+        'KECAMATAN': 'kecamatan',
+        'DESA/KELURAHAN': 'desa'
+    };
+
+    // File Processing (Preview)
+    function handleFile(file) {
+        if (!file) return;
         
-        fileInput.addEventListener('change', function(e) {
-            if (this.files && this.files[0]) {
-                filenameDisplay.textContent = this.files[0].name;
-                filenameDisplay.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill"></i> ${this.files[0].name}</span>`;
+        // Show info
+        const infoBlock = document.getElementById('import-file-info');
+        const filenameSpan = document.getElementById('import-filename');
+        infoBlock.style.display = 'flex';
+        infoBlock.className = 'alert alert-info mt-3 d-flex align-items-center';
+        filenameSpan.innerHTML = `${file.name} <span class="spinner-border spinner-border-sm ms-2"></span> parsing...`;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const json = JSON.parse(e.target.result);
+                if (Array.isArray(json)) {
+                    previewData = json;
+                    renderPreviewTable(json);
+                    
+                    document.getElementById('preview-container').style.display = 'block';
+                    document.getElementById('import-dropzone').style.display = 'none'; // Hide dropzone during preview
+                    
+                    filenameSpan.innerHTML = `<strong>${file.name}</strong> - ${json.length} Records Loaded`;
+                    infoBlock.className = 'alert alert-success mt-3 d-flex align-items-center';
+                } else {
+                    alert('Format JSON harus berupa Array of Objects');
+                    infoBlock.style.display = 'none';
+                }
+            } catch (err) {
+                alert('Gagal parsing JSON: ' + err.message);
+                infoBlock.style.display = 'none';
             }
-        });
-        
-        // Drag and drop visual effects
-        if(dropzone) {
-            dropzone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropzone.classList.add('dragover');
-            });
-             dropzone.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('dragover');
-            });
-             dropzone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('dragover');
-                // Note: file assignment relies on input click usually, 
-                // but can be enhanced if needed.
-            });
+        };
+        reader.readAsText(file);
+    }
+
+    // Input Change Listeners
+    document.getElementById('import-file').addEventListener('change', function(e) {
+        handleFile(this.files[0]);
+    });
+    
+    document.getElementById('validate-file').addEventListener('change', function(e) {
+        if(this.files[0]) {
+             document.getElementById('validate-filename').textContent = this.files[0].name;
         }
     });
 
-    // Helper to format logs
+    // Drag & Drop
+    ['import', 'validate'].forEach(type => {
+        const dropzone = document.getElementById(type + '-dropzone');
+        if(!dropzone) return;
+        
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        dropzone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+        });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            
+            if (type === 'import') {
+                document.getElementById('import-file').files = e.dataTransfer.files;
+                handleFile(file);
+            } else {
+                document.getElementById('validate-file').files = e.dataTransfer.files;
+                document.getElementById('validate-filename').textContent = file.name;
+            }
+        });
+    });
+
+    // Render Table
+    function renderPreviewTable(data) {
+        if (!data || data.length === 0) return;
+        
+        const container = document.getElementById('preview-table-container');
+        const headers = Object.keys(REQUIRED_KEYS);
+        
+        let html = `
+        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+            <table class="table table-striped table-hover table-sm mb-0" style="font-size: 0.85rem;">
+                <thead class="table-dark" style="position: sticky; top: 0; z-index: 10;">
+                    <tr>
+                        <th style="width: 50px;">#</th>
+        `;
+        
+        headers.forEach(key => {
+            html += `<th>${key}</th>`;
+        });
+        html += `</tr></thead><tbody>`;
+        
+        const limit = Math.min(data.length, 500);
+        
+        for (let i = 0; i < limit; i++) {
+            const row = data[i];
+            const hasEmail = !!row['EMAIL'];
+            const hasNoSk = !!row['NO SK KPS'];
+            const isMissing = !hasEmail || !hasNoSk;
+            
+            html += `<tr class="${isMissing ? 'table-danger' : ''}">`;
+            html += `<td>${i + 1}</td>`;
+            
+            headers.forEach(key => {
+                const val = row[key] || '';
+                const isRequired = ['EMAIL', 'NO SK KPS'].includes(key);
+                const isCellMissing = isRequired && !val;
+                
+                // Styling for missing cells
+                const cellStyle = isCellMissing ? 'background-color: #ffcccc;' : '';
+                
+                html += `
+                    <td contenteditable="true" 
+                        onblur="updatePreviewData(${i}, '${key}', this.innerText)"
+                        style="${cellStyle}; min-width: 150px;">
+                        ${val}
+                    </td>`;
+            });
+            html += `</tr>`;
+        }
+        
+        html += `</tbody></table></div>`;
+        if (data.length > 500) {
+            html += `<div class="p-2 bg-warning bg-opacity-10 text-warning"><i class="bi bi-exclamation-triangle"></i> Showing first 500 of ${data.length} records.</div>`;
+        }
+        container.innerHTML = html;
+    }
+
+    window.updatePreviewData = function(index, key, value) {
+        if (previewData[index]) {
+            previewData[index][key] = value.trim();
+        }
+    };
+
+    // Log Helper
     function formatLogLine(line) {
-        if (line.toLowerCase().includes('error')) return `<div class="log-line log-error">${line}</div>`;
-        if (line.toLowerCase().includes('success') || line.toLowerCase().includes('berhasil')) return `<div class="log-line log-success">${line}</div>`;
+        if (line.toLowerCase().includes('error') || line.toLowerCase().includes('fail')) return `<div class="log-line log-error">${line}</div>`;
+        if (line.toLowerCase().includes('success') || line.toLowerCase().includes('created')) return `<div class="log-line log-success">${line}</div>`;
         return `<div class="log-line">${line}</div>`;
     }
 
-    // Import Handler
-    document.getElementById('import-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
+    // Process Data (Submit)
+    document.getElementById('btn-process-preview').addEventListener('click', async function() {
+        if (previewData.length === 0) return;
+        if (!confirm(`Ready to process ${previewData.length} records?`)) return;
         
-        const formData = new FormData(this);
-        const btn = document.getElementById('btn-import');
+        const btn = this;
         const progressWrapper = document.getElementById('import-progress');
         const progressBar = document.getElementById('import-bar');
         const progressPercent = document.getElementById('import-percent');
@@ -611,17 +526,22 @@
         const logContent = document.getElementById('import-log');
         const statsContainer = document.getElementById('import-stats');
         
-        // Reset UI
+        // UI Transition
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+        document.getElementById('preview-container').style.display = 'none';
         progressWrapper.style.display = 'block';
-        logWindow.style.display = 'block';
-        statsContainer.style.display = 'none';
-        document.getElementById('download-failed-btn').style.display = 'none';
-        logContent.innerHTML = '<div class="log-line log-info">Initializing upload stream...</div>';
-        progressBar.width = '0%';
+        statsContainer.style.display = 'none'; // reset
+        
+        logContent.innerHTML = '<div class="log-line log-info">Packing and sending data...</div>';
+        progressBar.style.width = '0%';
         
         try {
+            const jsonString = JSON.stringify(previewData);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const formData = new FormData();
+            formData.append('file', blob, 'import_data.json');
+            
             const response = await fetch('/pendampingan/import', {
                 method: 'POST',
                 body: formData
@@ -637,12 +557,12 @@
                 const text = decoder.decode(value);
                 const lines = text.split('\n');
                 
-                lines.forEach(line => {
+                for (const line of lines) {
                     if (line.trim().startsWith('data: ')) {
+                        const jsonStr = line.replace('data: ', '').trim();
+                        if (!jsonStr) continue;
+                        
                         try {
-                            const jsonStr = line.replace('data: ', '').trim();
-                            if(!jsonStr) return;
-                            
                             const data = JSON.parse(jsonStr);
                             
                             if (data.progress !== undefined) {
@@ -666,24 +586,23 @@
                             if (data.failed_report_url) {
                                 const btnDownload = document.getElementById('download-failed-btn');
                                 btnDownload.href = "/pendampingan" + data.failed_report_url; 
-                                btnDownload.style.display = 'flex';
-                                logContent.innerHTML += `<div class="log-line log-error">Report generated: ${data.failed_report_url}</div>`;
+                                btnDownload.style.display = 'inline-block';
+                                logContent.innerHTML += `<div class="log-line log-error">Report Reference generated.</div>`;
                             }
                         } catch (e) {
-                            console.error('Parse error', e);
+                            console.error('JSON Parse error', e);
                         }
                     }
-                });
+                }
             }
         } catch (error) {
-            logContent.innerHTML += `<div class="log-line log-error">Connection Error: ${error.message}</div>`;
+             logContent.innerHTML += `<div class="log-line log-error">Network/Server Error: ${error.message}</div>`;
         } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-check-lg"></i> Import Selesai';
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Completed';
         }
     });
 
-    // Validation Handler
+    // Validasi Submit
     document.getElementById('validate-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const formData = new FormData(this);
@@ -694,26 +613,23 @@
         const logWindow = document.getElementById('validate-log-window');
         const logContent = document.getElementById('validate-log');
         
-        // UI Reset
         btn.disabled = true;
-        btn.innerHTML = 'Verifying data...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Verifying...';
         logWindow.style.display = 'block';
-        logContent.innerHTML = '<div class="log-line log-info">Starting validation logic...</div>';
+        logContent.innerHTML = '<div class="log-line log-info">Starting validation...</div>';
         
         try {
             const response = await fetch('/pendampingan/validate', {
                 method: 'POST',
                 body: formData
             });
-            
             const result = await response.json();
             
-            // Pretty print result
             logContent.innerHTML += `<div class="log-line log-success">Validation Complete!</div>`;
             logContent.innerHTML += `<pre style="color: #ccc; margin-top: 10px;">${JSON.stringify(result, null, 2)}</pre>`;
             
         } catch (error) {
-             logContent.innerHTML += `<div class="log-line log-error">Error: ${error.message}</div>`;
+            logContent.innerHTML += `<div class="log-line log-error">Error: ${error.message}</div>`;
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-search"></i> Jalankan Validasi';
