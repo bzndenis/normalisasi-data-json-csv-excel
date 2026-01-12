@@ -1,0 +1,723 @@
+{% extends "base.html" %}
+
+{% block title %}Manajemen Data Pendampingan - {{ super() }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        --accent-glow: 0 0 20px rgba(66, 133, 244, 0.5);
+    }
+
+    .hero {
+        text-align: center;
+        margin-bottom: 3rem;
+        position: relative;
+    }
+
+    .hero h1 {
+        font-weight: 800;
+        font-size: 2.5rem;
+        background: linear-gradient(to right, #ffffff, #e0e7ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        margin-bottom: 0.5rem;
+    }
+
+    .hero .subtitle {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.1rem;
+        font-weight: 300;
+        letter-spacing: 0.5px;
+    }
+
+    /* Main Grid Layout */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 2rem;
+        align-items: start;
+    }
+
+    /* Sidebar Navigation (Tool Cards) */
+    .nav-card-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .tool-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .tool-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 4px;
+        background: #4285f4;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .tool-card:hover {
+        transform: translateX(5px);
+        background: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .tool-card.active {
+        background: linear-gradient(90deg, rgba(66, 133, 244, 0.2), rgba(66, 133, 244, 0.05));
+        border-color: #4285f4;
+        box-shadow: var(--accent-glow);
+    }
+
+    .tool-card.active::before {
+        opacity: 1;
+    }
+
+    .tool-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: #fff;
+        transition: all 0.3s;
+    }
+
+    .tool-card.active .tool-icon {
+        background: #4285f4;
+        transform: scale(1.1);
+    }
+
+    .tool-info {
+        flex: 1;
+    }
+
+    .tool-title {
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 0.1rem;
+    }
+
+    .tool-desc {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* Content Panels */
+    .panel-container {
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 2.5rem;
+        box-shadow: var(--glass-shadow);
+        min-height: 500px;
+        position: relative;
+    }
+
+    .action-panel {
+        display: none;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .action-panel.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel-header {
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .panel-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    /* Upload Area - Improved */
+    .upload-area {
+        border: 2px dashed rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 4rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .upload-area:hover, .upload-area.dragover {
+        border-color: #4285f4;
+        background: rgba(66, 133, 244, 0.1);
+        transform: scale(1.01);
+    }
+
+    .file-input {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 10;
+    }
+
+    .upload-icon-wrapper {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        transition: transform 0.3s;
+    }
+
+    .upload-area:hover .upload-icon-wrapper {
+        transform: translateY(-5px) rotate(5deg);
+        background: rgba(66, 133, 244, 0.2);
+    }
+    
+    .upload-area h4 {
+        color: #fff;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Progress & Terminal */
+    .progress-wrapper {
+        margin-top: 2rem;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1.5rem;
+        border-radius: 16px;
+        display: none;
+    }
+
+    .progress-bar-container {
+        height: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 5px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4285f4, #34a853);
+        width: 0%;
+        transition: width 0.3s ease;
+        box-shadow: 0 0 10px rgba(66, 133, 244, 0.5);
+    }
+
+    .terminal-window {
+        background: #1e1e1e;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        margin-top: 1.5rem;
+        font-family: 'Consolas', 'Monaco', monospace;
+        overflow: hidden;
+        display: none;
+        border: 1px solid #333;
+    }
+
+    .terminal-header {
+        background: #2d2d2d;
+        padding: 0.5rem 1rem;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        border-bottom: 1px solid #333;
+    }
+
+    .terminal-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+
+    .terminal-content {
+        padding: 1rem;
+        color: #d4d4d4;
+        font-size: 0.9rem;
+        height: 300px;
+        max-height: 300px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+    }
+    
+    .log-line { margin-bottom: 0.2rem; }
+    .log-success { color: #4ade80; }
+    .log-error { color: #f87171; }
+    .log-info { color: #60a5fa; }
+
+    /* Stats Cards */
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-top: 1.5rem;
+        display: none;
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #fff;
+    }
+    
+    .stat-label {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* Buttons */
+    .btn-action {
+        background: linear-gradient(135deg, #4285f4, #3b82f6);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        width: 100%;
+        transition: all 0.3s;
+        box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(66, 133, 244, 0.5);
+    }
+    
+    .btn-action:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+        .nav-card-container {
+            flex-direction: row;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+        .tool-card {
+            flex: 1;
+            min-width: 200px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container glass-theme">
+    <div class="hero">
+        <h1>Manajemen Data Pendampingan</h1>
+        <p class="subtitle">Import, Validasi, dan Monitoring Kinerja Sistem</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Sidebar Navigation -->
+        <div class="nav-card-container">
+            <div class="tool-card active" onclick="switchTab('import')">
+                <div class="tool-icon"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+                <div class="tool-info">
+                    <div class="tool-title">Import Data</div>
+                    <div class="tool-desc">Upload JSON ke Database</div>
+                </div>
+            </div>
+            
+            <div class="tool-card" onclick="switchTab('validate')">
+                <div class="tool-icon"><i class="bi bi-shield-check-fill"></i></div>
+                <div class="tool-info">
+                    <div class="tool-title">Validasi</div>
+                    <div class="tool-desc">Cek & Perbaiki Data</div>
+                </div>
+            </div>
+            
+            <div class="tool-card" onclick="switchTab('logs')">
+                <div class="tool-icon"><i class="bi bi-terminal-fill"></i></div>
+                <div class="tool-info">
+                    <div class="tool-title">System Logs</div>
+                    <div class="tool-desc">Monitoring Proses</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="panel-container">
+            
+            <!-- Import Panel -->
+            <div id="import-panel" class="action-panel active">
+                <div class="panel-header">
+                    <div class="panel-title">Import Data Pendampingan</div>
+                    <div class="badge badge-info">JSON Format Only</div>
+                </div>
+                
+                <form id="import-form">
+                    <div class="upload-area" id="import-dropzone">
+                        <input type="file" class="file-input" name="file" id="import-file" accept=".json" required>
+                        <div class="upload-icon-wrapper">
+                            <i class="bi bi-filetype-json" style="font-size: 2.5rem; color: #fff;"></i>
+                        </div>
+                        <h4 id="import-filename">Drop file JSON disini atau klik untuk upload</h4>
+                        <p class="text-muted">Maksimal ukuran file 10MB</p>
+                    </div>
+                    
+                    <button type="submit" class="btn-action" id="btn-import">
+                        <i class="bi bi-rocket-takeoff"></i> Mulai Proses Import
+                    </button>
+                </form>
+                
+                <div class="progress-wrapper" id="import-progress">
+                    <div class="d-flex justify-between mb-2" style="color: #ccc;">
+                        <span><i class="bi bi-gear-wide-connected spin"></i> Processing data...</span>
+                        <span id="import-percent">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="import-bar"></div>
+                    </div>
+                </div>
+                
+                <div class="stats-container" id="import-stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="stat-total">0</div>
+                        <div class="stat-label">Records</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number text-success" style="color: #4ade80;" id="stat-success">0</div>
+                        <div class="stat-label">Success</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number text-info" style="color: #60a5fa;" id="stat-created">0</div>
+                        <div class="stat-label">New Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number text-danger" style="color: #f87171;" id="stat-failed">0</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                </div>
+                
+                <a id="download-failed-btn" href="#" class="btn-action" style="background: linear-gradient(135deg, #ef4444, #b91c1c); display: none; margin-top: 1rem;">
+                    <i class="bi bi-file-earmark-x"></i> Download Failed Records Report
+                </a>
+                
+                <div class="terminal-window" id="import-log-window">
+                    <div class="terminal-header">
+                        <div class="terminal-dot dot-red"></div>
+                        <div class="terminal-dot dot-yellow"></div>
+                        <div class="terminal-dot dot-green"></div>
+                        <span style="margin-left: 10px; font-size: 0.8rem; color: #888;">console output</span>
+                    </div>
+                    <div class="terminal-content" id="import-log"></div>
+                </div>
+            </div>
+            
+            <!-- Validate Panel -->
+            <div id="validate-panel" class="action-panel">
+                 <div class="panel-header">
+                    <div class="panel-title">Validasi & Perbaikan Data</div>
+                </div>
+                <p class="text-muted mb-3">Upload file JSON referensi untuk membandingkan data dengan database dan menemukan inkonsistensi.</p>
+                
+                <form id="validate-form">
+                    <div class="upload-area mb-3" style="padding: 2rem;">
+                         <input type="file" class="file-input" name="file" id="validate-file" accept=".json" required>
+                         <div class="upload-icon-wrapper" style="width: 60px; height: 60px;">
+                            <i class="bi bi-search" style="font-size: 1.5rem; color: #fff;"></i>
+                        </div>
+                        <h4 id="validate-filename" style="font-size: 1rem;">Pilih File Referensi</h4>
+                    </div>
+                    
+                    <div class="d-flex gap-3 mb-3 p-3" style="background: rgba(255,255,255,0.05); border-radius: 12px;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="check-fix" name="fix">
+                            <label class="form-check-label text-white" for="check-fix">
+                                Auto-Fix (Insert Missing)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="check-dry-run" name="dry_run">
+                            <label class="form-check-label text-white" for="check-dry-run">
+                                Dry Run (Simulasi)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-action" id="btn-validate">
+                        <i class="bi bi-search"></i> Jalankan Validasi
+                    </button>
+                </form>
+                
+                <div class="terminal-window" id="validate-log-window">
+                    <div class="terminal-header">
+                        <div class="terminal-dot dot-red"></div>
+                        <div class="terminal-dot dot-yellow"></div>
+                        <div class="terminal-dot dot-green"></div>
+                        <span style="margin-left: 10px; font-size: 0.8rem; color: #888;">validation results</span>
+                    </div>
+                    <div class="terminal-content" id="validate-log">Waiting for input...</div>
+                </div>
+            </div>
+            
+            <!-- Logs Panel -->
+             <div id="logs-panel" class="action-panel">
+                <div class="panel-header">
+                    <div class="panel-title">System Activity Logs</div>
+                    <button class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                </div>
+                
+                <div class="terminal-window" style="display: block; height: 400px; margin-top: 0;">
+                    <div class="terminal-header">
+                         <span style="font-size: 0.8rem; color: #888;">root@server:~/logs</span>
+                    </div>
+                    <div class="terminal-content">
+                        <div class="log-line log-info">[INFO] System initialized at {{ now_timestamp }}</div>
+                        <div class="log-line">[INFO] Database connection established</div>
+                        <div class="log-line">[INFO] Log rotation active</div>
+                        <div class="log-line log-success">[READY] Waiting for user actions...</div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Tab Switching Logic
+    function switchTab(tabName) {
+        document.querySelectorAll('.tool-card').forEach(card => card.classList.remove('active'));
+        document.querySelectorAll('.action-panel').forEach(panel => panel.classList.remove('active'));
+        
+        // Find active card based on onclick attribute containing the tabName
+        const cards = document.querySelectorAll('.tool-card');
+        if(tabName === 'import') cards[0].classList.add('active');
+        if(tabName === 'validate') cards[1].classList.add('active');
+        if(tabName === 'logs') cards[2].classList.add('active');
+        
+        document.getElementById(tabName + '-panel').classList.add('active');
+    }
+    
+    // File Input UX
+    ['import', 'validate'].forEach(type => {
+        const fileInput = document.getElementById(type + '-file');
+        const filenameDisplay = document.getElementById(type + '-filename');
+        const dropzone = document.getElementById(type + '-dropzone'); // if exists
+        
+        fileInput.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                filenameDisplay.textContent = this.files[0].name;
+                filenameDisplay.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill"></i> ${this.files[0].name}</span>`;
+            }
+        });
+        
+        // Drag and drop visual effects
+        if(dropzone) {
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+             dropzone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+            });
+             dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                // Note: file assignment relies on input click usually, 
+                // but can be enhanced if needed.
+            });
+        }
+    });
+
+    // Helper to format logs
+    function formatLogLine(line) {
+        if (line.toLowerCase().includes('error')) return `<div class="log-line log-error">${line}</div>`;
+        if (line.toLowerCase().includes('success') || line.toLowerCase().includes('berhasil')) return `<div class="log-line log-success">${line}</div>`;
+        return `<div class="log-line">${line}</div>`;
+    }
+
+    // Import Handler
+    document.getElementById('import-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const btn = document.getElementById('btn-import');
+        const progressWrapper = document.getElementById('import-progress');
+        const progressBar = document.getElementById('import-bar');
+        const progressPercent = document.getElementById('import-percent');
+        const logWindow = document.getElementById('import-log-window');
+        const logContent = document.getElementById('import-log');
+        const statsContainer = document.getElementById('import-stats');
+        
+        // Reset UI
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+        progressWrapper.style.display = 'block';
+        logWindow.style.display = 'block';
+        statsContainer.style.display = 'none';
+        document.getElementById('download-failed-btn').style.display = 'none';
+        logContent.innerHTML = '<div class="log-line log-info">Initializing upload stream...</div>';
+        progressBar.width = '0%';
+        
+        try {
+            const response = await fetch('/pendampingan/import', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                
+                const text = decoder.decode(value);
+                const lines = text.split('\n');
+                
+                lines.forEach(line => {
+                    if (line.trim().startsWith('data: ')) {
+                        try {
+                            const jsonStr = line.replace('data: ', '').trim();
+                            if(!jsonStr) return;
+                            
+                            const data = JSON.parse(jsonStr);
+                            
+                            if (data.progress !== undefined) {
+                                progressBar.style.width = data.progress + '%';
+                                progressPercent.textContent = data.progress + '%';
+                            }
+                            
+                            if (data.log) {
+                                logContent.innerHTML += formatLogLine(data.log);
+                                logContent.scrollTop = logContent.scrollHeight;
+                            }
+                            
+                            if (data.stats) {
+                                statsContainer.style.display = 'grid';
+                                document.getElementById('stat-total').textContent = data.stats.total;
+                                document.getElementById('stat-success').textContent = data.stats.success;
+                                document.getElementById('stat-created').textContent = data.stats.created || 0;
+                                document.getElementById('stat-failed').textContent = data.stats.failed;
+                            }
+                            
+                            if (data.failed_report_url) {
+                                const btnDownload = document.getElementById('download-failed-btn');
+                                btnDownload.href = "/pendampingan" + data.failed_report_url; 
+                                btnDownload.style.display = 'flex';
+                                logContent.innerHTML += `<div class="log-line log-error">Report generated: ${data.failed_report_url}</div>`;
+                            }
+                        } catch (e) {
+                            console.error('Parse error', e);
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            logContent.innerHTML += `<div class="log-line log-error">Connection Error: ${error.message}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Import Selesai';
+        }
+    });
+
+    // Validation Handler
+    document.getElementById('validate-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.append('fix', document.getElementById('check-fix').checked);
+        formData.append('dry_run', document.getElementById('check-dry-run').checked);
+        
+        const btn = document.getElementById('btn-validate');
+        const logWindow = document.getElementById('validate-log-window');
+        const logContent = document.getElementById('validate-log');
+        
+        // UI Reset
+        btn.disabled = true;
+        btn.innerHTML = 'Verifying data...';
+        logWindow.style.display = 'block';
+        logContent.innerHTML = '<div class="log-line log-info">Starting validation logic...</div>';
+        
+        try {
+            const response = await fetch('/pendampingan/validate', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            // Pretty print result
+            logContent.innerHTML += `<div class="log-line log-success">Validation Complete!</div>`;
+            logContent.innerHTML += `<pre style="color: #ccc; margin-top: 10px;">${JSON.stringify(result, null, 2)}</pre>`;
+            
+        } catch (error) {
+             logContent.innerHTML += `<div class="log-line log-error">Error: ${error.message}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-search"></i> Jalankan Validasi';
+        }
+    });
+</script>
+{% endblock %}

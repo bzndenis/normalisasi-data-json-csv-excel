@@ -30,12 +30,12 @@ class Settings(BaseSettings):
     EXPORT_DIR: str = "exports"
     
     # Database
-    DB_TYPE: str = "mysql"
+    DB_TYPE: str = "postgresql"
     DB_HOST: str = "localhost"
-    DB_PORT: int = 3306
-    DB_USER: str = "root"
+    DB_PORT: int = 5432
+    DB_USER: str = "postgres"
     DB_PASSWORD: str = ""
-    DB_NAME: str = "normalisasi_db"
+    DB_NAME: str = "gokendali_dev"
     
     # Logging
     LOG_DIR: str = "logs"

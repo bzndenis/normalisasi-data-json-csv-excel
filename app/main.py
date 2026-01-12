@@ -48,6 +48,8 @@ app.include_router(database.router)
 app.include_router(analysis.router)
 app.include_router(normalization.router)
 app.include_router(export.router)
+from app.routes import pendampingan
+app.include_router(pendampingan.router)
 
 
 # ============================================================================
