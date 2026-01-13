@@ -59,6 +59,28 @@ class UploadHandler:
             # Read file into DataFrame
             df = cls._read_file_to_dataframe(file_path, file.filename)
             
+            # Normalisasi data (Forward Fill)
+            # Kasus: 1 Pendamping mendampingi beberapa KPS
+            # Jika Nama Pendamping atau Email kosong, ambil dari row sebelumnya
+            target_cols_patterns = ['Nama Pendamping', 'nama pendamping', 'NAMA PENDAMPING', 'Email', 'email', 'EMAIL']
+            existing_cols = [col for col in df.columns if col in target_cols_patterns or any(p in col for p in target_cols_patterns if len(col) < 30)]
+            
+            # Filter specifically precise matches if possible to avoid over-matching, 
+            # but user request is specific to these columns.
+            # Let's stick to the specific list to be safe.
+            target_strict = ['Nama Pendamping', 'NAMA PENDAMPING', 'Email', 'EMAIL', 'Jen No Telp'] # Added 'Jen No Telp' as seen in screenshot just in case
+            cols_to_fill = [col for col in df.columns if col in target_strict]
+
+            if cols_to_fill:
+                # Replace empty strings/whitespace with None
+                df[cols_to_fill] = df[cols_to_fill].replace(r'^\s*$', None, regex=True)
+                # Forward fill
+                df[cols_to_fill] = df[cols_to_fill].ffill()
+                app_logger.info(f"Applied forward fill normalization on columns: {cols_to_fill}")
+
+            # Clean dataframe (remove .0 from integers)
+            df = cls._clean_dataframe(df)
+            
             # Store in memory
             cls._data_store[file_id] = df
             
@@ -229,3 +251,38 @@ class UploadHandler:
             return pd.read_excel(file_path)
         else:
             raise ValueError(f"Unsupported file type: {extension}")
+
+    @staticmethod
+    def _clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Clean dataframe to remove .0 artifacts from integer values.
+        """
+        # Patterns normally associated with integer-like codes/IDs
+        id_patterns = ['NO', 'NIK', 'NIP', 'TELP', 'HP', 'WA', 'TAHUN', 'ID', 'KODE', 'SK']
+        
+        for col in df.columns:
+            # Check if likely identifier
+            is_id_col = any(p in str(col).upper() for p in id_patterns)
+            
+            # 1. Handle Float Columns
+            if pd.api.types.is_float_dtype(df[col]):
+                # Check integrity: all non-nan values are integers
+                clean_series = df[col].dropna()
+                if not clean_series.empty and (clean_series % 1 == 0).all():
+                     # Convert to strings without .0
+                     # Using apply is robust; astype('Int64') can be faster but tricky with mixed needs
+                     df[col] = df[col].apply(lambda x: str(int(x)) if pd.notnull(x) else None)
+            
+            # 2. Handle Object Columns (strings that might look like "123.0")
+            elif pd.api.types.is_object_dtype(df[col]):
+                if is_id_col:
+                     # Remove .0 suffix if present
+                     def clean_val(x):
+                         if pd.isna(x): return None
+                         s = str(x)
+                         if s.endswith('.0'):
+                             return s[:-2]
+                         return s
+                     df[col] = df[col].apply(clean_val)
+        
+        return df

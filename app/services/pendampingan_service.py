@@ -250,7 +250,7 @@ class PendampinganService:
                 
             cur.execute("""
                 INSERT INTO users (user_nama, user_email, user_password, user_type, user_status, created_at, updated_at)
-                VALUES (%s, %s, '123456', 'pendamping', 'aktif', NOW(), NOW())
+                VALUES (%s, %s, 'e10adc3949ba59abbe56e057f20f883e', 'pendamping', 'aktif', NOW(), NOW())
                 RETURNING user_id
             """, (nama, email))
             user_id = cur.fetchone()[0]
