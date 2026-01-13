@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Generator
@@ -108,9 +109,38 @@ class PendampinganService:
         if not skema_ps:
             return None
             
+    def clean_sk_code(self, code: str) -> str:
+        if not code: return ""
+        # 1. Uppercase
+        code = code.upper()
+        # 2. Remove common prefixes start with SK or KEPUTUSAN or related
+        #    e.g. "SK.123" -> "123", "SK 123" -> "123"
+        code = re.sub(r'^(?:SK|NO\.?\s*SK|KEPUTUSAN|NOMOR)\s*[.:-]?\s*', '', code)
+        # 3. Remove all non-alphanumeric chars (removes / - . space)
+        code = re.sub(r'[^A-Z0-9]', '', code)
+        return code
+
+    def resolve_kps_id(self, conn, no_sk: str, skema_ps: Optional[str] = None, record: Optional[Dict] = None) -> Optional[int]:
+        no_sk_str = self.safe_str(no_sk)
+        
+        # ... existing logic ...
+        schema_normalized = None
+        is_valid_schema = False
+        
+        if skema_ps:
+            skema_lower = self.safe_str(skema_ps).lower().strip()
+            if skema_lower in ['hutan adat', 'lphd', 'ha', 'hn', 'lphn']:
+                schema_normalized = 'ha'
+                is_valid_schema = True
+            elif skema_lower == 'kk':
+                schema_normalized = 'kk'
+                is_valid_schema = True
+        
+        # Note: If no schema provided, we still try search by No SK
+            
         cur = conn.cursor()
         try:
-            # Search logic
+            # 1. Exact Match Search
             if schema_normalized:
                 cur.execute("SELECT id FROM master_kps WHERE TRIM(no_sk_normalized) = TRIM(%s) AND LOWER(TRIM(COALESCE(schema, ''))) = %s LIMIT 1", (no_sk_str, schema_normalized))
                 res = cur.fetchone()
@@ -120,7 +150,27 @@ class PendampinganService:
             res = cur.fetchone()
             if res: return res[0]
             
-            # Create logic if not found and allowed
+            # 2. Fuzzy/Clean Match Search (Prevents duplicates like SK888 vs 888)
+            cleaned_input = self.clean_sk_code(no_sk_str)
+            if cleaned_input and len(cleaned_input) > 4: # Only fuzzy search if significant length
+                # DB side cleanup: Remove SK prefix if exists, then strip non-alnum
+                # This complex query normalizes DB column same way as input
+                query_clean = """
+                    SELECT id FROM master_kps 
+                    WHERE 
+                    regexp_replace(
+                        regexp_replace(UPPER(no_sk_normalized), '^(?:SK|NO\.?\s*SK|KEPUTUSAN|NOMOR)\s*[.:-]?\s*', ''),
+                        '[^A-Z0-9]', '', 'g'
+                    ) = %s
+                    LIMIT 1
+                """
+                cur.execute(query_clean, (cleaned_input,))
+                res = cur.fetchone()
+                if res: 
+                    logger.info(f"Fuzzy key match found: Input '{no_sk_str}' -> Clean '{cleaned_input}' -> ID {res[0]}")
+                    return res[0]
+
+            # 3. Create logic if not found and allowed
             if record and is_valid_schema:
                 try:
                     # Extract fields for creation
@@ -273,10 +323,14 @@ class PendampinganService:
                     no_value = record.get(self.JSON_FIELD_MAPPING['no'])
                     is_no_empty = (no_value is None or self.safe_str(no_value) == '')
                     
+                    nama_val = self.safe_str(record.get(self.JSON_FIELD_MAPPING['nama_pendamping']))
+                    nama_present = bool(nama_val)
+
                     pendamping_id = None
                     user_id = None
                     
-                    if is_no_empty and last_pendamping_id:
+                    # Only reuse previous ID if BOTH 'No' and 'Nama' are empty (implies grouped row detail)
+                    if (is_no_empty and not nama_present) and last_pendamping_id:
                         pendamping_id = last_pendamping_id
                         user_id = last_user_id
                     else:
